@@ -335,17 +335,18 @@ public sealed class BanScreenAnalyzer
             var core = op.CoreCovenants.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
             var additional = op.AdditionalCovenants.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
 
-            // Banned core covenant: the operator belongs to it, so it is out.
-            var bannedCore = result.CoreCovenants.FirstOrDefault(c => c.IsBanned && core.Contains(c.Name));
-            if (bannedCore is not null)
+            // The game assigns one primary core covenant; that covenant being banned removes the operator.
+            var primary = CovenantBanRules.PrimaryCore(core, op.Name);
+            if (primary is not null && bannedCoreCovenants.Contains(primary))
             {
-                AddToGroup(bannedCore.Name, op.Name);
+                AddToGroup(primary, op.Name);
                 continue;
             }
 
-            // Operators without a usable core covenant (none drawn, or all drawn ones banned) are
+            // Operators without a usable core covenant (none drawn, or their covenant is banned) are
             // ruled out by a banned additional covenant instead.
-            var hasUsableCore = core.Any(c => drawnCoreCovenants.Contains(c) && !bannedCoreCovenants.Contains(c));
+            var hasUsableCore = primary is not null
+                && drawnCoreCovenants.Contains(primary) && !bannedCoreCovenants.Contains(primary);
             if (hasUsableCore) continue;
             var bannedAdditional = result.AdditionalCovenants.FirstOrDefault(c => c.IsBanned && additional.Contains(c.Name));
             if (bannedAdditional is not null)

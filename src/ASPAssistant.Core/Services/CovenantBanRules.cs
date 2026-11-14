@@ -10,6 +10,28 @@ namespace ASPAssistant.Core.Services;
 public static class CovenantBanRules
 {
     /// <summary>
+    /// 游戏里每个干员在调度中心只归属一个核心盟约。多核心盟约干员的归属按游戏内禁用分组实测整理：
+    /// 锏 / 卡涅利安 / 薇薇安娜 / 复奏 归莱塔尼亚，哈洛德归谢拉格，烛煌归炎
+    /// （2026-11-14 与游戏内「本局禁用干员」分组核对）。
+    /// </summary>
+    private static readonly Dictionary<string, string> PrimaryCovenant = new(StringComparer.Ordinal)
+    {
+        ["锏"] = "莱塔尼亚",
+        ["卡涅利安"] = "莱塔尼亚",
+        ["薇薇安娜"] = "莱塔尼亚",
+        ["复奏"] = "莱塔尼亚",
+        ["哈洛德"] = "谢拉格",
+        ["烛煌"] = "炎",
+    };
+
+    /// <summary>The single core covenant the game assigns this operator to (first one when unknown).</summary>
+    public static string? PrimaryCore(IEnumerable<string> coreCovenants, string operatorName)
+    {
+        if (PrimaryCovenant.TryGetValue(operatorName, out var primary)) return primary;
+        return coreCovenants.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
+    }
+
+    /// <summary>
     /// 核心盟约是干员的阵营：只要有一个核心盟约被 ban，这个干员本局就不可用。
     /// 例如锏同时属于卡西米尔 / 谢拉格 / 莱塔尼亚，ban 掉莱塔尼亚后锏同样被禁用（游戏内实测）。
     ///
