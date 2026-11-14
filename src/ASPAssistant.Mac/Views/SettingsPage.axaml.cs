@@ -97,9 +97,10 @@ public partial class SettingsPage : UserControl
         await _state.SetShopThemeAsync(theme);
     }
 
-    private void OnOverlayToggled(object? sender, RoutedEventArgs e)
+    private async void OnOverlayToggled(object? sender, RoutedEventArgs e)
     {
         var show = this.FindControl<CheckBox>("OverlayCheck")?.IsChecked == true;
+        await _state.SetShowOverlayAsync(show);
         if (show)
         {
             if (_state.Overlay is null)

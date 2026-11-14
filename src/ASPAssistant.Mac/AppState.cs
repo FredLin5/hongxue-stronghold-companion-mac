@@ -227,6 +227,7 @@ public sealed class AppState : IDisposable
         };
         scanner.ItemsRecognized += items => state.LastShopItems = items;
 
+        state.ShowOverlay = LoadShowOverlay(settingsDir);
         Current = state;
         return state;
     }
@@ -243,6 +244,34 @@ public sealed class AppState : IDisposable
 
     /// <summary>The experimental overlay window, when shown.</summary>
     public Views.OverlayWindow? Overlay { get; set; }
+
+    /// <summary>Whether the overlay was enabled last time (persisted in mac-overlay.json).</summary>
+    public bool ShowOverlay { get; set; }
+
+    public async Task SetShowOverlayAsync(bool show)
+    {
+        ShowOverlay = show;
+        try
+        {
+            Directory.CreateDirectory(SettingsDir);
+            await File.WriteAllTextAsync(Path.Combine(SettingsDir, "mac-overlay.json"),
+                System.Text.Json.JsonSerializer.Serialize(show));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppLogger.Warn("Mac", $"Could not save overlay setting: {ex.Message}");
+        }
+    }
+
+    private static bool LoadShowOverlay(string settingsDir)
+    {
+        try
+        {
+            var path = Path.Combine(settingsDir, "mac-overlay.json");
+            return File.Exists(path) && System.Text.Json.JsonSerializer.Deserialize<bool>(File.ReadAllText(path));
+        }
+        catch { return false; }
+    }
 
     /// <summary>Raised after bans changed, so the operator page can rebuild its rows.</summary>
     public event Action? BanListChanged;

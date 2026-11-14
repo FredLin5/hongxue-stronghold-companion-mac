@@ -51,7 +51,7 @@ public partial class MainWindow : Window
         {
             if (state.Overlay is { } window) window.UpdateItems(items);
         });
-        if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_OVERLAY") == "1")
+        if (state.ShowOverlay || Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_OVERLAY") == "1")
         {
             var overlay = new OverlayWindow();
             overlay.SetTrackedPredicate(state.TrackingVm.IsTracked);
