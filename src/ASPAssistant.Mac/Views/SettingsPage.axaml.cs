@@ -97,6 +97,27 @@ public partial class SettingsPage : UserControl
         await _state.SetShopThemeAsync(theme);
     }
 
+    private void OnOverlayToggled(object? sender, RoutedEventArgs e)
+    {
+        var show = this.FindControl<CheckBox>("OverlayCheck")?.IsChecked == true;
+        if (show)
+        {
+            if (_state.Overlay is null)
+            {
+                _state.Overlay = new OverlayWindow();
+                _state.Overlay.SetTrackedPredicate(_state.TrackingVm.IsTracked);
+                _state.Overlay.UpdateItems(_state.LastShopItems);
+                _state.Overlay.Closed += (_, _) => _state.Overlay = null;
+                _state.Overlay.Show();
+            }
+        }
+        else
+        {
+            _state.Overlay?.Close();
+            _state.Overlay = null;
+        }
+    }
+
     private GameConnectionSettings BuildSettings() => new()
     {
         Source = this.FindControl<ComboBox>("SourceBox")!.SelectedIndex switch

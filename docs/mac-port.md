@@ -168,8 +168,22 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
 - 商店识别沿用 16∶9、以 1080p 为基准的相对坐标；本机 4K PlayCover 实机已验证终端主题，其他分辨率/界面缩放仍需实机验证。
 - 商店主题自动识别默认关闭（设置页可开）：PlayCover 4K 帧下正确主题得分约 25（1080p 参考图为 4~5），
   因此 macOS 侧把绝对阈值放宽到 30，并要求与次优主题相差 ≥8；实测本机帧判定为 Ursus（乌萨斯簇）正确。
-- macOS 界面尚未实现游戏内叠加层（原 `OverlayWindow`），所以商店标记只在助手窗口内显示。
+- 叠加层是原型：透明、置顶（NSStatusWindowLevel）、鼠标穿透（`ignoresMouseEvents=YES`）、每 250ms
+  跟随 PlayCover 游戏窗口；目前除商店在售标记外还画了调试用的边框/十字线/状态文字。
+  实测（2026-11-14）把 3 个追踪目标「雪祀之衣 / 地灵 / 摆渡人」的徽标准确画在商店卡上方，
+  并可跟随游戏窗口移动（窗口移到 42,123 后叠加层同步）。
 - 自动更新、托盘、全局快捷键依赖 Windows API，macOS 版暂未提供。
+
+### 叠加层实现要点
+
+- `Overlay/GameWindowLocator.cs`：`CGWindowListCopyWindowInfo` 找到 owner 为「明日方舟」的窗口
+  （不需要屏幕录制权限，只有窗口标题受限），`CGRectMakeWithDictionaryRepresentation` 取 bounds（points）。
+- 游戏内容是 16:9 且位于标题栏下方：`contentH = contentW * 9 / 16`，`top = window.Y + (window.H - contentH)`。
+- `Overlay/NativeOverlay.cs`：通过 `objc_msgSend` 设置 `setIgnoresMouseEvents:`（鼠标穿透）、
+  `setLevel: 25`、`setCollectionBehavior:`、`setOpaque: false`、`setHasShadow: false`。
+  Avalonia 的平台句柄是 `AvnWindow`（NSWindow 子类），用 `respondsToSelector:` 判断而不是类名。
+- Avalonia 的 `Window.Position` 在 macOS 上按屏幕 points 处理（与 CGWindowList 同单位），不要再乘缩放。
+- 标记位置直接来自 `ShopItem.OcrRegion`（相对截图的归一化坐标）× 叠加层尺寸。
 
 ## 开发工具
 

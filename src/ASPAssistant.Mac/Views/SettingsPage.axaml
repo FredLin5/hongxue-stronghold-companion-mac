@@ -64,6 +64,16 @@
                 </StackPanel>
             </Border>
 
+            <!-- Overlay (experimental) -->
+            <Border Classes="card" Padding="12,10">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="叠加层（实验）" FontSize="12" FontWeight="SemiBold" />
+                    <CheckBox x:Name="OverlayCheck" Content="显示跟随游戏窗口的叠加层" Click="OnOverlayToggled" />
+                    <TextBlock FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}"
+                               Text="透明、置顶、可穿透鼠标，跟随 PlayCover 游戏窗口。当前只画了测试标记，用来验证对齐和层级。" />
+                </StackPanel>
+            </Border>
+
             <!-- About -->
             <Border Classes="card" Padding="12,10">
                 <StackPanel Spacing="4">

@@ -241,6 +241,9 @@ public sealed class AppState : IDisposable
         await Settings.SaveGameConnectionAsync(settings);
     }
 
+    /// <summary>The experimental overlay window, when shown.</summary>
+    public Views.OverlayWindow? Overlay { get; set; }
+
     /// <summary>Raised after bans changed, so the operator page can rebuild its rows.</summary>
     public event Action? BanListChanged;
 

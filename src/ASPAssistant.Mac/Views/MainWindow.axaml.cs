@@ -47,6 +47,18 @@ public partial class MainWindow : Window
         if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_AUTOSCAN") == "1")
             state.Scanner.Start();
         // Development aid: run the info-page analysis once after startup (used for live checks).
+        state.Scanner.ItemsRecognized += items => Dispatcher.UIThread.Post(() =>
+        {
+            if (state.Overlay is { } window) window.UpdateItems(items);
+        });
+        if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_OVERLAY") == "1")
+        {
+            var overlay = new OverlayWindow();
+            overlay.SetTrackedPredicate(state.TrackingVm.IsTracked);
+            state.Overlay = overlay;
+            overlay.Closed += (_, _) => state.Overlay = null;
+            overlay.Show();
+        }
         if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_AUTOINFO") == "1")
             Dispatcher.UIThread.Post(async () => await state.IdentifyGameInfoAsync(), DispatcherPriority.Background);
         _state.Scanner.Scanned += _ => Dispatcher.UIThread.Post(UpdateStatus);

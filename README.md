@@ -147,7 +147,8 @@ scripts/build-mac.sh --run
 已支持：干员/装备浏览与筛选、追踪列表、已保存阵容、PlayCover/ADB 连接、商店名称 OCR
 （直接列出**本局在售的全部商品**，点一下加入追踪）、本局信息识别（Ban 盟约 / 禁用干员 / 敌方领袖，
 游戏内放大镜页面）、自动扫描、深浅主题与连接设置；以上已在 PlayCover 4K 实机联调。商店主题自动识别在 PlayCover 4K 下不可靠，默认手动选择。
-未移植：Ban 位截图录入、站位规划/地图模拟、游戏内叠加层、阵容编辑器、攻略导入、自动更新与全局快捷键。Windows 版本不受影响。
+未移植：站位规划/地图模拟、阵容编辑器、攻略导入、自动更新与全局快捷键。
+游戏内叠加层已完成原型（透明置顶、鼠标穿透、跟随游戏窗口，商店在售标记已在实机验证）。Windows 版本不受影响。
 
 设置与数据目录为 `~/Library/Application Support/ASPAssistant/`，与 Windows 端的 JSON 格式一致。
 详细说明、PlayCover 配置步骤与验证记录见 [docs/mac-port.md](docs/mac-port.md)。
