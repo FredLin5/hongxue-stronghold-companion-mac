@@ -21,9 +21,28 @@ public partial class OperatorsPage : UserControl
         _state = state;
         InitializeComponent();
         DataContext = state.OperatorVm;
+
+        // Ban changes arrive on a background thread and keep existing rows, so rebuild the
+        // item containers to re-evaluate the "本局禁用" badge converter.
+        state.BanListChanged += () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (this.FindControl<ItemsControl>("OperatorList") is { } list)
+            {
+                list.ItemsSource = null;
+                list.ItemsSource = _state.OperatorVm.FilteredOperators;
+            }
+        });
     }
 
     private void OnResetFilters(object? sender, RoutedEventArgs e) => _state.OperatorVm.ResetFilters();
+
+    private void OnAvailableOnlyToggled(object? sender, RoutedEventArgs e)
+    {
+        var availableOnly = this.FindControl<CheckBox>("AvailableOnly")?.IsChecked == true;
+        _state.OperatorVm.SelectedAvailabilityFilter = availableOnly
+            ? ASPAssistant.Core.ViewModels.AvailabilityFilter.Available
+            : ASPAssistant.Core.ViewModels.AvailabilityFilter.All;
+    }
 
     private async void OnTrackOperator(object? sender, RoutedEventArgs e)
     {

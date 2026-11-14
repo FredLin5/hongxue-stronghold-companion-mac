@@ -1,0 +1,97 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ASPAssistant.Mac.Views.GameInfoPage">
+    <ScrollViewer>
+        <StackPanel Spacing="10" Margin="2,2,2,10">
+            <Border Classes="card" Padding="12,10">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="本局信息" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}"
+                               Text="游戏内左上角、回合数左边有个放大镜，点开可重新显示本局信息（不限时）。保持该页面打开，再点下面的按钮。" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="primary" Content="识别本局信息" Click="OnIdentify"
+                                IsEnabled="{Binding !IsBusy}" />
+                        <Button Content="清空" Classes="ghost" Click="OnClear" />
+                    </StackPanel>
+                    <TextBlock Text="{Binding Status}" FontSize="10" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondary}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="12,10" IsVisible="{Binding HasResult}">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="敌方领袖" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding EnemyBoss}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{DynamicResource Danger}" />
+                    <TextBlock Text="{Binding EnemyTypes}" FontSize="10"
+                               Foreground="{DynamicResource TextSecondary}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="12,10" IsVisible="{Binding HasResult}">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="盟约" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="核心禁用" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                    <ItemsControl ItemsSource="{Binding BannedCoreCovenants}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="tag red">
+                                    <TextBlock Text="{Binding}" FontSize="11" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="附加禁用" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                    <ItemsControl ItemsSource="{Binding BannedAdditionalCovenants}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="tag red">
+                                    <TextBlock Text="{Binding}" FontSize="11" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="本局可用核心" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                    <ItemsControl ItemsSource="{Binding AvailableCoreCovenants}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="tag green">
+                                    <TextBlock Text="{Binding}" FontSize="11" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card" Padding="12,10" IsVisible="{Binding HasResult}">
+                <StackPanel Spacing="6">
+                    <TextBlock FontSize="12" FontWeight="SemiBold">
+                        <Run Text="禁用干员 " /><Run Text="{Binding BannedOperatorCount}" />
+                    </TextBlock>
+                    <ItemsControl ItemsSource="{Binding BannedOperators}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="tag muted">
+                                    <TextBlock Text="{Binding}" FontSize="11" />
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

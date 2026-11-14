@@ -103,6 +103,11 @@
         <Setter Property="Background" Value="{DynamicResource ChipSelectedBackground}" />
     </Style>
 
+    <Style Selector="ToggleButton.chip.blocked">
+        <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+
     <Style Selector="Button.shopitem">
         <Setter Property="Background" Value="{DynamicResource ChipBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
@@ -117,6 +122,31 @@
         <Setter Property="Background" Value="{DynamicResource SuccessTint}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
         <Setter Property="Foreground" Value="{DynamicResource Success}" />
+    </Style>
+
+    <Style Selector="Border.tag">
+        <Setter Property="Background" Value="{DynamicResource ChipBackground}" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="Margin" Value="0,0,5,5" />
+    </Style>
+    <Style Selector="Border.tag.red">
+        <Setter Property="Background" Value="{DynamicResource DangerTint}" />
+    </Style>
+    <Style Selector="Border.tag.red TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+    <Style Selector="Border.tag.green">
+        <Setter Property="Background" Value="{DynamicResource SuccessTint}" />
+    </Style>
+    <Style Selector="Border.tag.green TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource Success}" />
+    </Style>
+    <Style Selector="Border.tag.muted">
+        <Setter Property="Background" Value="{DynamicResource ChipBackground}" />
+    </Style>
+    <Style Selector="Border.tag.muted TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
     </Style>
 
     <Style Selector="TextBox">

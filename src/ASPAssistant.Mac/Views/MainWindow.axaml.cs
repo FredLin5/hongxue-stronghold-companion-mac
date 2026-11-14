@@ -26,6 +26,7 @@ public partial class MainWindow : Window
         {
             [this.FindControl<Button>("TabOperators")!] = new OperatorsPage(state),
             [this.FindControl<Button>("TabEquipment")!] = new EquipmentPage(state),
+            [this.FindControl<Button>("TabGameInfo")!] = new GameInfoPage(state),
             [this.FindControl<Button>("TabTracking")!] = new TrackingPage(state),
             [this.FindControl<Button>("TabLineups")!] = new LineupPage(state),
             [this.FindControl<Button>("TabSettings")!] = new SettingsPage(state),
@@ -37,6 +38,7 @@ public partial class MainWindow : Window
             "equipment" => "TabEquipment",
             "tracking" => "TabTracking",
             "lineups" => "TabLineups",
+            "gameinfo" => "TabGameInfo",
             "settings" => "TabSettings",
             _ => "TabOperators"
         };
@@ -44,6 +46,9 @@ public partial class MainWindow : Window
         // Development aid: start the periodic shop scan right away (no click automation available).
         if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_AUTOSCAN") == "1")
             state.Scanner.Start();
+        // Development aid: run the info-page analysis once after startup (used for live checks).
+        if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_AUTOINFO") == "1")
+            Dispatcher.UIThread.Post(async () => await state.IdentifyGameInfoAsync(), DispatcherPriority.Background);
         _state.Scanner.Scanned += _ => Dispatcher.UIThread.Post(UpdateStatus);
         UpdateStatus();
     }

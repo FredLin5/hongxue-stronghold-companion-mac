@@ -36,9 +36,10 @@
 
         <!-- Tab bar -->
         <Border DockPanel.Dock="Top" Margin="8,6,8,0">
-            <UniformGrid Columns="5">
+            <UniformGrid Columns="6">
                 <Button x:Name="TabOperators" Classes="tab active" Content="干员" Click="OnTabClick" />
                 <Button x:Name="TabEquipment" Classes="tab" Content="装备" Click="OnTabClick" />
+                <Button x:Name="TabGameInfo" Classes="tab" Content="本局" Click="OnTabClick" />
                 <Button x:Name="TabTracking" Classes="tab" Content="追踪" Click="OnTabClick" />
                 <Button x:Name="TabLineups" Classes="tab" Content="阵容" Click="OnTabClick" />
                 <Button x:Name="TabSettings" Classes="tab" Content="设置" Click="OnTabClick" />

@@ -13,6 +13,8 @@ using var connection = new GameConnectionService(new GameConnectionSettings
 });
 
 var watch = args.Contains("--watch");
+var tapIndex = Array.IndexOf(args, "--tap");
+var swipeIndex = Array.IndexOf(args, "--swipe");
 var frame = connection.CaptureDeviceScreen(1920);
 Console.WriteLine($"status: {connection.Status}");
 if (frame is null)
@@ -26,7 +28,75 @@ using var decoded = Raster.Decode(frame);
 File.WriteAllBytes(outPath, decoded?.EncodePng() ?? frame);
 Console.WriteLine($"captured {width}x{height} -> {outPath}");
 
+// Optional interaction: coordinates are given in a 1920x1080 reference frame and scaled
+// to the real capture size (the game renders 3840x2160 through PlayCover here).
+if (tapIndex >= 0 && args.Length > tapIndex + 2)
+{
+    var (cw, ch) = connection.DeviceSize;
+    double sx = cw / 1920.0, sy = ch / 1080.0;
+    int x = (int)(double.Parse(args[tapIndex + 1]) * sx);
+    int y = (int)(double.Parse(args[tapIndex + 2]) * sy);
+    Console.WriteLine($"tap ({args[tapIndex + 1]},{args[tapIndex + 2]}) -> ({x},{y}) of {cw}x{ch}: {connection.Tap(x, y)}");
+    Thread.Sleep(1200);
+    var after = connection.CaptureDeviceScreen(1920);
+    if (after is not null)
+    {
+        using var shot = Raster.Decode(after);
+        File.WriteAllBytes(outPath.Replace(".png", "-after-tap.png"), shot?.EncodePng() ?? after);
+        Console.WriteLine("saved after-tap frame");
+    }
+    return 0;
+}
+
+if (swipeIndex >= 0 && args.Length > swipeIndex + 4)
+{
+    var (cw, ch) = connection.DeviceSize;
+    double sx = cw / 1920.0, sy = ch / 1080.0;
+    int x1 = (int)(double.Parse(args[swipeIndex + 1]) * sx);
+    int y1 = (int)(double.Parse(args[swipeIndex + 2]) * sy);
+    int x2 = (int)(double.Parse(args[swipeIndex + 3]) * sx);
+    int y2 = (int)(double.Parse(args[swipeIndex + 4]) * sy);
+    Console.WriteLine($"swipe ({x1},{y1})->({x2},{y2}): {connection.Swipe(x1, y1, x2, y2)}");
+    Thread.Sleep(800);
+    var after = connection.CaptureDeviceScreen(1920);
+    if (after is not null)
+    {
+        using var shot = Raster.Decode(after);
+        File.WriteAllBytes(outPath.Replace(".png", "-after-swipe.png"), shot?.EncodePng() ?? after);
+        Console.WriteLine("saved after-swipe frame");
+    }
+    return 0;
+}
+
 var dataDir = Path.Combine(root, "data");
+
+if (args.Contains("--ban"))
+{
+    var store2 = new ASPAssistant.Core.Data.JsonDataStore(dataDir);
+    var ops = await store2.LoadOperatorsAsync();
+    var (covs, _) = await store2.LoadCovenantsAsync();
+    var coreNames = covs.Where(c => c.BondType.Equals("SEASON", StringComparison.OrdinalIgnoreCase))
+        .Select(c => c.Name).Where(n => n.Length > 0).ToList();
+    var additionalNames = covs.Where(c => !c.BondType.Equals("SEASON", StringComparison.OrdinalIgnoreCase))
+        .Select(c => c.Name).Where(n => n.Length > 0).ToList();
+    var bosses = new BossDataService();
+    await bosses.LoadAsync(dataDir);
+    using var ocr2 = new MaaOcrEngine(dataDir);
+    var mode = new ASPAssistant.Core.GameModes.GarrisonProtocol.GarrisonProtocolMode();
+    var recognizer = new EnemyRecognizer(ocr2, mode.OcrStrategy, bosses);
+    var analyzer = new BanScreenAnalyzer(() => Task.FromResult<byte[]?>(frame), ocr2, mode.OcrStrategy,
+        recognizer, ops, coreNames, additionalNames);
+    analyzer.AnalysisCompleted += r => Console.WriteLine(
+        "bans core=" + string.Join(",", r.CoreCovenants.Where(c => c.IsBanned).Select(c => c.Name))
+        + " | additional=" + string.Join(",", r.AdditionalCovenants.Where(c => c.IsBanned).Select(c => c.Name))
+        + " | enemy=" + (r.EnemyFaction ?? "-"));
+    analyzer.AutoBanListComputed += names => Console.WriteLine("auto bans: " + string.Join(" / ", names));
+    analyzer.EnemyDetected += e => Console.WriteLine(
+        $"enemy: boss={e.BossName} types={string.Join("/", e.EnemyTypes)}");
+    analyzer.AnalysisFailed += m => Console.WriteLine("analysis failed: " + m);
+    await analyzer.RunAnalysisAsync();
+    return 0;
+}
 var detector = new GameShopThemeDetector(Path.Combine(dataDir, "shop_theme_refs.json"));
 Console.WriteLine($"theme(1920, threshold 30): {detector.Detect(frame, 30)}");
 Console.WriteLine("scores: " + string.Join(", ", detector.Score(frame).Select(s => $"{s.Theme}={s.Score:F1}")));

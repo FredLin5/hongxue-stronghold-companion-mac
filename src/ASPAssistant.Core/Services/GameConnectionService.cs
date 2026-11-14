@@ -40,6 +40,9 @@ public sealed class GameConnectionService : IDisposable
     public bool IsDeviceCapture => IsAdb || IsPlayCover;
     public string Status => Volatile.Read(ref _status);
 
+    /// <summary>Native capture size of the last successful device screenshot (touch coordinates use this space).</summary>
+    public (int Width, int Height) DeviceSize => (_screenWidth, _screenHeight);
+
     public GameConnectionService(GameConnectionSettings? settings = null
 #if WINDOWS
         , IntPtr selectedWindow = default
@@ -240,37 +243,35 @@ public sealed class GameConnectionService : IDisposable
             int x = (int)(_screenWidth * .35);
             int y1 = (int)(_screenHeight * .72);
             int y2 = (int)(_screenHeight * .64);
-            if (_playCoverController is { } playCover)
-                return TouchSwipe(playCover, x, y1, x, y2);
-            return _adbController?.Swipe(x, y1, x, y2, 200).Wait() == MaaJobStatus.Succeeded;
+            var controller = (MaaController?)_adbController ?? _playCoverController;
+            return controller is not null && controller.Swipe(x, y1, x, y2, 200).Wait() == MaaJobStatus.Succeeded;
         }
     }
 
-    /// <summary>A single tap in capture coordinates (PlayCover and ADB both support touch).</summary>
+    /// <summary>
+    /// A single tap in capture coordinates. MaaFramework converts click/swipe into
+    /// touch_down/move/up for controllers that advertise "use mouse down/up instead of click"
+    /// (the PlayCover control unit does), so the platform-neutral controller API is enough.
+    /// </summary>
     public bool Tap(int x, int y)
     {
         lock (_captureLock)
         {
             if (_disposed) return false;
-            // PlayCover's control unit only implements touch_down/touch_up (click is deprecated).
-            if (_playCoverController is { } playCover)
-                return playCover.TouchDown(0, x, y, 1).Wait() == MaaJobStatus.Succeeded
-                    && playCover.TouchUp(0).Wait() == MaaJobStatus.Succeeded;
-            return _adbController?.Click(x, y).Wait() == MaaJobStatus.Succeeded;
+            var controller = (MaaController?)_adbController ?? _playCoverController;
+            return controller is not null && controller.Click(x, y).Wait() == MaaJobStatus.Succeeded;
         }
     }
 
-    /// <summary>PlayCover swipe built from explicit touch events (its controller has no swipe).</summary>
-    private static bool TouchSwipe(MaaController controller, int x1, int y1, int x2, int y2, int steps = 8)
+    /// <summary>A vertical drag in capture coordinates (same controller-level swipe for ADB and PlayCover).</summary>
+    public bool Swipe(int x1, int y1, int x2, int y2, int durationMs = 200)
     {
-        if (controller.TouchDown(0, x1, y1, 1).Wait() != MaaJobStatus.Succeeded) return false;
-        for (int step = 1; step <= steps; step++)
+        lock (_captureLock)
         {
-            int x = x1 + (x2 - x1) * step / steps;
-            int y = y1 + (y2 - y1) * step / steps;
-            controller.TouchMove(0, x, y, 1).Wait();
-            Thread.Sleep(16);
+            if (_disposed) return false;
+            var controller = (MaaController?)_adbController ?? _playCoverController;
+            return controller is not null
+                && controller.Swipe(x1, y1, x2, y2, durationMs).Wait() == MaaJobStatus.Succeeded;
         }
-        return controller.TouchUp(0).Wait() == MaaJobStatus.Succeeded;
     }
 }

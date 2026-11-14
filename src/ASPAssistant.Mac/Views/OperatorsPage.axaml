@@ -6,6 +6,7 @@
         <conv:IconPathConverter x:Key="Icon" />
         <conv:TierRomanConverter x:Key="Tier" />
         <conv:JoinConverter x:Key="Join" />
+        <conv:BannedNameConverter x:Key="Banned" />
     </UserControl.Resources>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="6">
@@ -16,13 +17,76 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ToggleButton Classes="chip" Content="{Binding Label}"
-                                      IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                        <ToggleButton Classes="chip" Classes.blocked="{Binding IsBlocked}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <Border Width="5" Height="5" CornerRadius="3" VerticalAlignment="Center"
+                                        Background="{DynamicResource Accent}" IsVisible="{Binding IsHighlighted}" />
+                                <TextBlock Text="{Binding Label}" FontSize="11"
+                                           Foreground="{Binding $parent[ToggleButton].Foreground}" />
+                            </StackPanel>
+                        </ToggleButton>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="核心" FontSize="10" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMuted}" Margin="0,0,6,0" />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding CoreChips}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ToggleButton Classes="chip" Classes.blocked="{Binding IsBlocked}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <Border Width="5" Height="5" CornerRadius="3" VerticalAlignment="Center"
+                                                Background="{DynamicResource Accent}" IsVisible="{Binding IsHighlighted}" />
+                                        <TextBlock Text="{Binding Label}" FontSize="11"
+                                                   Foreground="{Binding $parent[ToggleButton].Foreground}" />
+                                        <TextBlock Text="{Binding CountText}" FontSize="9" IsVisible="{Binding HasCount}"
+                                                   Foreground="{DynamicResource TextMuted}" />
+                                    </StackPanel>
+                                </ToggleButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="附加" FontSize="10" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextMuted}" Margin="0,0,6,0" />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding OtherChips}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ToggleButton Classes="chip" Classes.blocked="{Binding IsBlocked}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay}">
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <Border Width="5" Height="5" CornerRadius="3" VerticalAlignment="Center"
+                                                Background="{DynamicResource Accent}" IsVisible="{Binding IsHighlighted}" />
+                                        <TextBlock Text="{Binding Label}" FontSize="11"
+                                                   Foreground="{Binding $parent[ToggleButton].Foreground}" />
+                                        <TextBlock Text="{Binding CountText}" FontSize="9" IsVisible="{Binding HasCount}"
+                                                   Foreground="{DynamicResource TextMuted}" />
+                                    </StackPanel>
+                                </ToggleButton>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
             <DockPanel>
                 <Button DockPanel.Dock="Right" Classes="ghost" Content="重置" Click="OnResetFilters" />
+                <CheckBox DockPanel.Dock="Right" x:Name="AvailableOnly" Content="只看本局可用" FontSize="10"
+                          Margin="0,0,8,0" Click="OnAvailableOnlyToggled" />
                 <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center">
                     <Run Text="共 " /><Run Text="{Binding MatchedCount}" /><Run Text=" 名" />
                 </TextBlock>
@@ -47,6 +111,11 @@
                                                 VerticalAlignment="Center">
                                             <TextBlock Text="{Binding Tier, Converter={StaticResource Tier}}"
                                                        FontSize="10" Foreground="{DynamicResource Elite}" />
+                                        </Border>
+                                        <Border Background="{DynamicResource DangerTint}" CornerRadius="5" Padding="4,0"
+                                                VerticalAlignment="Center"
+                                                IsVisible="{Binding Name, Converter={StaticResource Banned}}">
+                                            <TextBlock Text="本局禁用" FontSize="9" Foreground="{DynamicResource Danger}" />
                                         </Border>
                                     </StackPanel>
                                     <TextBlock FontSize="10" Foreground="{DynamicResource TextSecondary}"

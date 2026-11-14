@@ -66,6 +66,16 @@ public sealed class JoinConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+/// <summary>True when the current run's Ban list contains this operator name.</summary>
+public sealed class BannedNameConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is string name && AppState.Current is { } state && state.BanVm.IsBanned(name);
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 /// <summary>True for a non-zero number, used to show badges.</summary>
 public sealed class CountToVisibilityConverter : IValueConverter
 {

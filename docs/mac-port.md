@@ -12,6 +12,8 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
   <img src="images/mac/operators.png" width="240" alt="macOS 干员浏览" />
   <img src="images/mac/tracking.png" width="240" alt="macOS 追踪页：本局在售商品" />
   <img src="images/mac/tracking-confirmed.png" width="240" alt="macOS 追踪页：已加入追踪的商品" />
+  <img src="images/mac/game-info.png" width="240" alt="macOS 本局信息（Ban 位 / 敌方领袖）" />
+  <img src="images/mac/operators-bans.png" width="240" alt="macOS 干员页：本局禁用标记" />
   <img src="images/mac/settings.png" width="240" alt="macOS 连接设置" />
 </p>
 
@@ -29,7 +31,8 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 | 自动扫描（启动即开始，可在追踪页关闭） | ✅ |
 | 商店主题：手动选择（自动指纹识别可选，PlayCover 下阈值放宽） | ✅ |
 | 深色/浅色主题、识别主题选择、连接设置 | ✅ |
-| 截图录入 Ban 位 / 敌方首领识别 | ⛔ 未移植 |
+| 本局信息识别：Ban 盟约 / 禁用干员 / 敌方领袖（游戏内放大镜页面） | ✅ |
+| 干员页联动：本局禁用标记、盟约 chip 禁用态、只看本局可用 | ✅ |
 | 站位规划 / 地图模拟 / 游戏内叠加层 | ⛔ 未移植 |
 | 阵容编辑器、森空岛攻略导入 | ⛔ 未移植（可直接读取 Windows 端已保存的阵容 JSON） |
 | 全局快捷键、托盘、自动更新 | ⛔ 未移植 |
@@ -101,7 +104,13 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
 
 ## 验证记录（2026-11-14）
 
-**真机联调（PlayCover 4K）**：本机 PlayCover 版《明日方舟》开启 MaaTools，`MaaPlayCoverController` 连上
+**真机联调（本局信息页，2026-11-14 12:05）**：点开游戏内左上角放大镜（回合数左边）的信息页，
+点「本局」页的「识别本局信息」→ 1.8 秒内读出：核心禁用 萨尔贡 / 维多利亚 / 伊比利亚 / 莱塔尼亚，
+附加禁用 远见 / 不屈，本局可用核心 炎 / 谢拉格 / 叙拉古 / 乌萨斯，敌方领袖 盐风主教昆图斯，
+特训敌人·复苏 / 隐盾，禁用干员 27 名；干员页同步显示「本局禁用」红标与盟约 chip 的禁用态。
+点击放大镜本身也是用 `GameConnectionService.Tap` 完成的（4K 坐标 980,96）。
+
+**真机联调（PlayCover 4K 商店）**：本机 PlayCover 版《明日方舟》开启 MaaTools，`MaaPlayCoverController` 连上
 `127.0.0.1:1717`，捕获 `3840×2160` 画面（OCR 前缩到 1920×1080）。在卫戍协议商店页识别出
 「随身身份牌 / 拜松 / 褐果 / 摆渡人」，追踪的 3 个目标（随身身份牌、拜松、褐果）在助手「追踪」页显示为
 “在售 3”，状态栏同步显示 `PlayCover 已连接 · 3840×2160 · 识别到 3 个目标`；点击/滑动通过触摸序列下发。
@@ -122,9 +131,11 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
 
 ## 已知限制
 
-- MaaFramework 5.8 的 PlayCover 控制单元只实现 touch_down/touch_move/touch_up（click/swipe 标记为 deprecated）。
-  移植时已把“点击”改成 down+up、把“滑动”改成 down→move×8→up 的触摸序列，因此 PlayCover 下点击和滑动可用；
-  `ScrollInformationPanelDown` 也走这条路径。依赖滚轮补读的 Ban 识别流程本次尚未移植。
+- 触控走 MaaFramework 内建路径：控制单元声明 `UseMouseDownAndUpInsteadOfClick` 后，
+  `MaaController.Click/Swipe` 会被 ControllerAgent 自动展开成 touch_down/move/up（自带 10ms 插值节奏），
+  不需要自己拼触摸序列。`GameConnectionService.Tap/Swipe/ScrollInformationPanelDown` 现在直接调用它们，
+  已用模拟 MaaTools 服务验证（点击→down+up，滑动→24 个触摸事件）。
+- 本局信息（Ban 位）目前是手动触发，不随应用重启保留；游戏内向导的放大镜页面不限时，可随时重新识别。
 - 商店识别沿用 16∶9、以 1080p 为基准的相对坐标；本机 4K PlayCover 实机已验证终端主题，其他分辨率/界面缩放仍需实机验证。
 - 商店主题自动识别默认关闭（设置页可开）：PlayCover 4K 帧下正确主题得分约 25（1080p 参考图为 4~5），
   因此 macOS 侧把绝对阈值放宽到 30，并要求与次优主题相差 ≥8；实测本机帧判定为 Ursus（乌萨斯簇）正确。
@@ -137,7 +148,7 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
 | --- | --- |
 | `tools/MacProbe` | 冒烟测试：SkiaSharp 编解码、MaaFramework OCR、6 张商店样本、主题判定 |
 | `tools/PlayToolsMock` | PlayCover 协议集成测试：模拟 MaaTools 服务，验证截图、OCR、触摸、滑动 |
-| `tools/PlayCoverProbe` | 真机探针：对运行中的 PlayCover 游戏截一帧存成 PNG，输出主题分数与商店 OCR 结果（`--watch` 持续采样） |
+| `tools/PlayCoverProbe` | 真机探针：截图/主题分数/商店 OCR（`--watch`）、`--ban` 跑本局信息识别、`--tap x y`/`--swipe x1 y1 x2 y2` 发触摸（坐标以 1920×1080 为基准） |
 | `tools/mac-dev/shot.sh <tab> <out.png>` | 启动已构建的 app 并截取指定标签页窗口（`operators`/`equipment`/`tracking`/`lineups`/`settings`） |
 | `ASPASSISTANT_MAC_START_PAGE` | 指定启动标签页（开发调试） |
 | `ASPASSISTANT_SETTINGS_DIR` | 指定配置目录，避免污染 `~/Library/Application Support/ASPAssistant` |
@@ -151,8 +162,7 @@ CI：`.github/workflows/mac-build.yml` 在 `macos-14` 上构建 Core/Avalonia �
 
 ## 后续可做
 
-1. 移植 Ban 位识别（`BanScreenAnalyzer` + `BanIconGrid` + `BanCovenantReader` 都已在 Core 里跨平台可用，
-   缺的是 mac 侧的“信息页截图 → 录入”交互与 PlayCover 下的滑动补读）。
+1. 开局信息页的自动检测（现在手动点「识别本局信息」；Core 的 `OcrScannerService` 已有自动检测逻辑）。
 2. 游戏内叠加层：用 CoreGraphics 窗口列表跟踪 PlayCover 游戏窗口位置，叠一个无边框透明窗口显示商店标记。
 3. 阵容编辑器与森空岛导入（`SklandGuideImporter` 已在 Core 中，纯 HTTP + JSON）。
 4. 站位规划/地图模拟（Core 的 `PlacementPlanner`、`GarrisonBoardStore` 均可直接复用，缺 Avalonia 版棋盘渲染）。

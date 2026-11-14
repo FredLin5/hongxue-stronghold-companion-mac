@@ -5,6 +5,7 @@ using ASPAssistant.Core.Data;
 using ASPAssistant.Core.Models;
 using ASPAssistant.Core.Services;
 using ASPAssistant.Core.ViewModels;
+using Avalonia.Threading;
 
 namespace ASPAssistant.Mac;
 
@@ -31,6 +32,11 @@ public sealed class AppState : IDisposable
     public required EquipmentBrowseViewModel EquipmentVm { get; init; }
     public required TrackingViewModel TrackingVm { get; init; }
     public required LineupViewModel LineupVm { get; init; }
+    public required BanViewModel BanVm { get; init; }
+    public required GameInfoViewModel GameInfo { get; init; }
+
+    /// <summary>Reads the in-game info page (magnifier menu) into bans and enemy data.</summary>
+    public BanScreenAnalyzer? Analyzer { get; private set; }
 
     public GameConnectionService Connection { get; private set; } = null!;
     public ScreenCaptureService Capture { get; private set; } = null!;
@@ -134,6 +140,8 @@ public sealed class AppState : IDisposable
             EquipmentVm = equipmentVm,
             TrackingVm = trackingVm,
             LineupVm = lineupVm,
+            BanVm = banVm,
+            GameInfo = new GameInfoViewModel(),
             Connection = connection,
             Capture = new ScreenCaptureService(connection),
             ShopTheme = shopTheme,
@@ -149,6 +157,53 @@ public sealed class AppState : IDisposable
             catalogNames: () => shopNames);
         state.Scanner = scanner;
         scanner.AutomaticThemeDetection = await settings.LoadAutomaticGameThemeAsync();
+
+        // ── 本局信息识别（Ban 位 / 敌方领袖）───────────────────────────────
+        var bossData = new BossDataService();
+        await bossData.LoadAsync(dataDir);
+        var mode = new Core.GameModes.GarrisonProtocol.GarrisonProtocolMode();
+        var coreCovenantNames = covenants
+            .Where(c => string.Equals(c.BondType, "SEASON", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+        var additionalCovenantNames = covenants
+            .Where(c => !string.Equals(c.BondType, "SEASON", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Name).Where(n => !string.IsNullOrEmpty(n)).Distinct().ToList();
+        var analyzer = new BanScreenAnalyzer(
+            () => Task.Run(() => state.Capture.CaptureScreen()),
+            ocr, mode.OcrStrategy,
+            new EnemyRecognizer(ocr, mode.OcrStrategy, bossData),
+            operators, coreCovenantNames, additionalCovenantNames);
+        analyzer.ScrollInformationPanelAsync = async () =>
+        {
+            var scrolled = await Task.Run(() => state.Connection.ScrollInformationPanelDown());
+            if (!scrolled) return null;
+            await Task.Delay(250);
+            return await Task.Run(() => state.Capture.CaptureScreen());
+        };
+        analyzer.AnalysisBusyChanged += busy => Dispatcher.UIThread.Post(() =>
+        {
+            if (busy) state.GameInfo.Begin();
+        });
+        analyzer.AutoBanListComputed += names => Dispatcher.UIThread.Post(() =>
+        {
+            state.BanVm.SetBans(names);
+            state.GameInfo.SetBannedOperators(names);
+            state.OperatorVm.NotifyBansChanged();
+        });
+        analyzer.AnalysisCompleted += result => Dispatcher.UIThread.Post(() =>
+        {
+            state.BanVm.SetCovenantBans(result.CoreCovenants.Concat(result.AdditionalCovenants)
+                .Where(c => c.IsBanned).Select(c => c.Name));
+            state.OperatorVm.SetCovenantBanChecker(state.BanVm.IsCovenantBanned);
+            state.OperatorVm.SetAvailableCovenants(result.CoreCovenants.Concat(result.AdditionalCovenants)
+                .Where(c => !c.IsBanned).Select(c => c.Name));
+            state.GameInfo.Apply(result);
+            state.OperatorVm.NotifyBansChanged();
+            state.BanListChanged?.Invoke();
+        });
+        analyzer.AnalysisFailed += message => Dispatcher.UIThread.Post(() => state.GameInfo.Fail(message));
+        analyzer.EnemyDetected += enemy => Dispatcher.UIThread.Post(() => state.GameInfo.SetEnemy(enemy));
+        state.Analyzer = analyzer;
         scanner.ThemeDetected += theme =>
         {
             reader.Theme = theme;
@@ -168,6 +223,21 @@ public sealed class AppState : IDisposable
         Connection = Capture.Connection;
         previous.Dispose();
         await Settings.SaveGameConnectionAsync(settings);
+    }
+
+    /// <summary>Raised after bans changed, so the operator page can rebuild its rows.</summary>
+    public event Action? BanListChanged;
+
+    public async Task IdentifyGameInfoAsync()
+    {
+        if (Analyzer is null) return;
+        // The shop scanner and the ban analyzer share one MaaTasker/OCR engine; stop sampling
+        // while the info page is being read, then resume.
+        var wasScanning = Scanner.IsRunning;
+        Scanner.Stop();
+        try { await Analyzer.RunAnalysisAsync(); }
+        catch (Exception ex) { AppLogger.Warn("Mac", $"Game info analysis failed: {ex.Message}"); }
+        finally { if (wasScanning) Scanner.Start(); }
     }
 
     /// <summary>Changes the shop theme used by the recogniser and persists it.</summary>
