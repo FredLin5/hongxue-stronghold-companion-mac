@@ -112,24 +112,6 @@ public sealed class AppState : IDisposable
         };
         trackingVm.LoadState(trackingState);
 
-        var strategyById = strategies.ToDictionary(s => s.Id, StringComparer.Ordinal);
-        foreach (var lineup in lineups)
-        {
-            lineup.RecommendedStrategies = lineup.Strategies
-                .Select(slot => strategyById.TryGetValue(slot.StrategyId, out var strategy)
-                    ? new RecommendedStrategy { Strategy = strategy, Tags = slot.Tags }
-                    : null)
-                .Where(s => s is not null)
-                .Select(s => s!)
-                .OrderBy(s => s.Tags.FirstOrDefault() switch
-                {
-                    StrategyTag.阵容核心 => 0,
-                    StrategyTag.优选 => 1,
-                    StrategyTag.次选 => 2,
-                    _ => 3
-                })
-                .ToList();
-        }
 
         var lineupVm = new LineupViewModel(lineupStore, calculator);
         lineupVm.LoadLineups(lineups);
@@ -165,6 +147,8 @@ public sealed class AppState : IDisposable
             Capture = new ScreenCaptureService(connection),
             ShopTheme = shopTheme,
         };
+
+        foreach (var lineup in lineups) state.ResolveStrategies(lineup);
 
         var ocr = new MaaOcrEngine(dataDir);
         var reader = new ShopReader(ocr, shopNames) { Theme = shopTheme };
@@ -290,6 +274,26 @@ public sealed class AppState : IDisposable
             return File.Exists(path) && System.Text.Json.JsonSerializer.Deserialize<bool>(File.ReadAllText(path));
         }
         catch { return false; }
+    }
+
+    /// <summary>Fills <see cref="Lineup.RecommendedStrategies"/> from data/strategies.json.</summary>
+    public void ResolveStrategies(Lineup lineup)
+    {
+        var byId = Strategies.ToDictionary(s => s.Id, StringComparer.Ordinal);
+        lineup.RecommendedStrategies = lineup.Strategies
+            .Select(slot => byId.TryGetValue(slot.StrategyId, out var strategy)
+                ? new RecommendedStrategy { Strategy = strategy, Tags = slot.Tags }
+                : null)
+            .Where(s => s is not null)
+            .Select(s => s!)
+            .OrderBy(s => s.Tags.FirstOrDefault() switch
+            {
+                StrategyTag.阵容核心 => 0,
+                StrategyTag.优选 => 1,
+                StrategyTag.次选 => 2,
+                _ => 3
+            })
+            .ToList();
     }
 
     /// <summary>Raised after bans changed, so the operator page can rebuild its rows.</summary>

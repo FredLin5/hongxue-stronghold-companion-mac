@@ -2,7 +2,9 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using ASPAssistant.Core;
+using System.Net.Http;
 using ASPAssistant.Core.Models;
+using ASPAssistant.Core.Services;
 
 namespace ASPAssistant.Mac.Views;
 
@@ -22,6 +24,42 @@ public partial class LineupPage : UserControl
         _state = state;
         InitializeComponent();
         DataContext = state.LineupVm;
+    }
+
+    private void OnToggleImport(object? sender, RoutedEventArgs e)
+    {
+        var panel = this.FindControl<Border>("ImportPanel");
+        if (panel is not null) panel.IsVisible = !panel.IsVisible;
+    }
+
+    private async void OnImport(object? sender, RoutedEventArgs e)
+    {
+        var box = this.FindControl<TextBox>("ImportBox");
+        var status = this.FindControl<TextBlock>("ImportStatus");
+        if (box is null || status is null) return;
+        var input = box.Text?.Trim() ?? "";
+        if (input.Length == 0)
+        {
+            status.Text = "请先粘贴攻略链接。";
+            return;
+        }
+        status.Text = "正在读取攻略…";
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+            var importer = new SklandGuideImporter(http, _state.Operators, _state.Strategies);
+            var result = await importer.ImportAsync(input);
+            _state.ResolveStrategies(result.Lineup);
+            await _state.LineupVm.AddOrUpdateAsync(result.Lineup);
+            status.Text = result.Notice;
+            box.Text = "";
+            AppLogger.Info("Mac", $"Imported lineup '{result.Lineup.Name}' with {result.Lineup.RecommendedStrategies.Count} strategies");
+        }
+        catch (Exception ex)
+        {
+            status.Text = ex.Message;
+            AppLogger.Warn("Mac", $"Lineup import failed: {ex}");
+        }
     }
 
     private async void OnTrackLineup(object? sender, RoutedEventArgs e)

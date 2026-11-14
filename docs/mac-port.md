@@ -26,6 +26,7 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 | 装备浏览（搜索、等阶/分类筛选） | ✅ |
 | 追踪列表（干员/装备、过渡/精锐标记、已获取、移除、清空） | ✅ |
 | 已保存阵容列表（查看干员、推荐策略、一键追踪、删除） | ✅ |
+| 阵容导入：粘贴森空岛攻略链接，或复制 Windows 端的阵容 JSON | ✅ |
 | 通过 PlayCover MaaTools 连接游戏（截图 + 触摸） | ✅ |
 | 通过 ADB 连接模拟器 | ✅（与 Windows 同一套 MaaAdbController 逻辑） |
 | 商店识别：名称栏 OCR + **本局全部在售商品列表**（点一下加入追踪） | ✅ |
@@ -156,6 +157,16 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
 - `tools/MacProbe` 在 macOS 上用真实 PaddleOCR 模型跑 `src/ASPAssistant.Tests/TestData` 里的 6 张商店截图：
   6/6 通过，名称与 `SHOP_SAMPLES.md` 记录一致；主题判定 Terminal/Ursus 正确。
 - `MaaPlayCoverController` 在无服务时可以给出明确的连接失败提示；有服务时的实机联调见下文“待办”。
+
+## 阵容从哪来
+
+macOS 版没有阵容编辑器，阵容来自两处：
+
+1. **导入森空岛攻略**：阵容页右上角「导入」→ 粘贴 `game.skland.com/arknights/stronghold-guide/detail?guideId=…`
+   形式的攻略详情链接；解析出的干员、阶段、推荐策略会写入 `~/Library/Application Support/ASPAssistant/lineups/`。
+2. **从 Windows 复制**：把 `%AppData%\ASPAssistant\lineups` 里的 JSON 拷到上面的目录，重启后出现。
+
+Ban 位录入只影响干员页的可用性标记，不会生成阵容。
 
 ## 策略与筛选顺序
 

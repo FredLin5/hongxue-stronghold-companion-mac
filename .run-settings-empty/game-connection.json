@@ -1,0 +1,8 @@
+{
+  "Source": "PlayCover",
+  "AdbPath": "",
+  "AdbSerial": "",
+  "WindowTitle": "MuMu安卓设备",
+  "PlayCoverAddress": "127.0.0.1:1717",
+  "PlayCoverBundleId": "com.hypergryph.arknights"
+}
