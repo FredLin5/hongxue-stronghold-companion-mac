@@ -1,0 +1,104 @@
+# macOS release: builds the self-contained .app bundle and attaches it to the tag's release.
+# Only the macOS port is built here; the Windows release is handled by release.yml.
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, e.g. v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: release-mac-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build-mac:
+    name: macOS .app (${{ github.ref_name }})
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          tag="${{ github.event.inputs.tag || github.ref_name }}"
+          if [[ ! "$tag" =~ ^v[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "::error::tag '$tag' must look like v1.2.3"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Offline harnesses (OCR samples + PlayCover protocol)
+        shell: bash
+        run: |
+          dotnet run --project tools/MacProbe/MacProbe.csproj -c Release
+          dotnet run --project tools/PlayToolsMock/PlayToolsMock.csproj -c Release
+
+      - name: Build .app bundle
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: ./scripts/build-mac.sh
+
+      - name: Verify bundle
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          app="dist/鸿雪·卫戍助手.app"
+          test -x "$app/Contents/MacOS/HongxueStronghold"
+          test -f "$app/Contents/Resources/AppIcon.icns"
+          test -f "$app/Contents/MacOS/data/operators.json"
+          test -f "$app/Contents/MacOS/data/model/ocr/rec.onnx"
+          for f in LICENSE LICENSE.upstream NOTICE; do test -f "$app/Contents/MacOS/$f"; done
+          # Only the bundled RID may remain (Maa.Framework.Runtimes ships all platforms).
+          test "$(ls "$app/Contents/MacOS/runtimes")" = "osx-arm64"
+          got=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+          test "$got" = "$VERSION" || { echo "Info.plist version $got != $VERSION"; exit 1; }
+          codesign --verify --deep --strict "$app"
+          echo "bundle size: $(du -sh "$app" | cut -f1)"
+
+      - name: Zip and checksum
+        id: package
+        shell: bash
+        run: |
+          cd dist
+          zip="HongxueStronghold-macOS-arm64-${{ steps.version.outputs.tag }}.zip"
+          ditto -c -k --keepParent "鸿雪·卫戍助手.app" "$zip"
+          shasum -a 256 "$zip" > SHA256SUMS-macos.txt
+          cat SHA256SUMS-macos.txt
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(shasum -a 256 "$zip" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "size=$(du -h "$zip" | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: 鸿雪·卫戍助手 ${{ steps.version.outputs.tag }}
+          body_path: RELEASE_NOTES.md
+          files: |
+            dist/${{ steps.package.outputs.zip }}
+            dist/SHA256SUMS-macos.txt
+          fail_on_unmatched_files: true

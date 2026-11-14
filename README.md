@@ -140,9 +140,13 @@ Core 逻辑与数据，并通过 MaaFramework 的 PlayCover 控制单元连接 [
 （PlayTools 的 MaaTools TCP 服务，默认 `127.0.0.1:1717`）读取 PlayCover 版《明日方舟》的画面，无需 adb。
 
 ```bash
-# 需要 .NET 10 SDK；打包为自包含 .app
+# 需要 .NET 8+ SDK；打包为自包含 .app（默认 ad-hoc 签名）
 scripts/build-mac.sh --run
 ```
+
+推送 `v*` tag 会触发 `Release macOS` 工作流，产出 `HongxueStronghold-macOS-arm64-<tag>.zip`
+和 `SHA256SUMS-macos.txt`；Windows 版本仍由 `Release` 工作流构建，两者挂在同一个 Release 下。
+下载包未公证，首次打开需右键「打开」或 `xattr -dr com.apple.quarantine`。
 
 已支持：干员/装备浏览与筛选、追踪列表、已保存阵容（含推荐策略）、PlayCover/ADB 连接、商店名称 OCR
 （直接列出**本局在售的全部商品**，点一下加入追踪）、本局信息识别（Ban 盟约 / 禁用干员 / 敌方领袖，

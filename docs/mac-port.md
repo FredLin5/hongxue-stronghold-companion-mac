@@ -203,6 +203,35 @@ Ban 位录入只影响干员页的可用性标记，不会生成阵容。
 - Avalonia 的 `Window.Position` 在 macOS 上按屏幕 points 处理（与 CGWindowList 同单位），不要再乘缩放。
 - 标记位置直接来自 `ShopItem.OcrRegion`（相对截图的归一化坐标）× 叠加层尺寸。
 
+## 发版（macOS）
+
+`.github/workflows/release-mac.yml` 只构建 macOS 版本：
+
+1. 打一个 `v` 开头的 tag（如 `v1.0.0`）并推送，或在 Actions 里手动运行并填 tag；
+2. 工作流先跑两个离线测试（`tools/MacProbe` 的 6 张商店样本 + `tools/PlayToolsMock` 的协议链路），
+   再用 `scripts/build-mac.sh` 打出 `.app`（版本号取自 tag，`CFBundleVersion` 用运行编号）；
+3. 校验 bundle：可执行文件、图标、`data/operators.json`、OCR 模型、三份许可文件、`Info.plist` 版本、
+   `codesign --verify`，并确认 `runtimes/` 只剩 `osx-arm64`；
+4. 用 `ditto` 打包成 `HongxueStronghold-macOS-arm64-<tag>.zip`，生成 `SHA256SUMS-macos.txt`，
+   上传到该 tag 的 GitHub Release（Windows 版本由 `release.yml` 走另一个 job，两者共用同一个 Release）。
+
+本地等价命令：
+
+```bash
+VERSION=1.0.0 BUILD_NUMBER=1 scripts/build-mac.sh
+cd dist && ditto -c -k --keepParent "鸿雪·卫戍助手.app" out.zip
+```
+
+> 构建脚本会把 `Maa.Framework.Runtimes` 里其他平台的原生库删掉，只保留 `osx-arm64`：
+> `.app` 从 502MB 降到 231MB，zip 从 227MB 降到 128MB。
+
+**签名说明**：发布包只做 ad-hoc 签名、没有公证。首次打开如果被 Gatekeeper 拦下，
+右键 →「打开」，或执行：
+
+```bash
+xattr -dr com.apple.quarantine "鸿雪·卫戍助手.app"
+```
+
 ## 开发工具
 
 | 工具 | 用途 |

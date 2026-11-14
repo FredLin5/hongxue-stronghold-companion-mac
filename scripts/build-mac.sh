@@ -12,6 +12,9 @@ cd "$ROOT"
 
 APP_NAME="鸿雪·卫戍助手"
 BUNDLE_ID="com.hongxue.stronghold"
+# Release version: explicit VERSION (CI uses the git tag) or the csproj default.
+VERSION="${VERSION:-$(grep -o '<Version>[^<]*' src/ASPAssistant.Mac/ASPAssistant.Mac.csproj | head -1 | sed 's/<Version>//')}"
+VERSION="${VERSION#v}"
 DIST="$ROOT/dist"
 APP="$DIST/$APP_NAME.app"
 PUBLISH="$ROOT/.tmp/publish-mac"
@@ -24,13 +27,19 @@ echo "==> publish ($RID, self-contained)"
 rm -rf "$PUBLISH"
 "$DOTNET" publish src/ASPAssistant.Mac/ASPAssistant.Mac.csproj \
     -c Release -r "$RID" --self-contained true \
-    -p:EnableWindowsTargeting=false \
+    -p:Version="$VERSION" \
     -o "$PUBLISH" -v q
 
 echo "==> assemble bundle"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp -R "$PUBLISH/." "$APP/Contents/MacOS/"
+
+# Maa.Framework.Runtimes ships native libraries for every platform; keep only the target RID.
+RUNTIMES="$APP/Contents/MacOS/runtimes"
+if [ -d "$RUNTIMES" ]; then
+    find "$RUNTIMES" -mindepth 1 -maxdepth 1 -type d ! -name "$RID" -exec rm -rf {} +
+fi
 
 # Icon: PNG -> .iconset -> .icns
 ICON_SRC="$ROOT/data/icons/aspa_logo.png"
@@ -54,8 +63,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleExecutable</key><string>HongxueStronghold</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>$VERSION</string>
+    <key>CFBundleVersion</key><string>${BUILD_NUMBER:-1}</string>
     <key>LSMinimumSystemVersion</key><string>12.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
@@ -66,6 +75,7 @@ PLIST
 # Ad-hoc signature so Gatekeeper and the PlayCover network client behave on a local build.
 codesign --force --deep --sign - "$APP" >/dev/null 2>&1 || echo "warning: ad-hoc codesign failed (app still runs locally)"
 
+echo "==> version: $VERSION"
 echo "==> done: $APP"
 du -sh "$APP"
 
