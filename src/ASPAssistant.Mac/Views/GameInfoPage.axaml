@@ -59,7 +59,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="禁用人数（按游戏内分组）" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                    <TextBlock Text="禁用人数（按游戏内分组；同一干员可能同时出现在核心组和附加组）" FontSize="10" Foreground="{DynamicResource TextMuted}" />
                     <ItemsControl ItemsSource="{Binding BanGroups}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>

@@ -314,10 +314,14 @@ public sealed class BanScreenAnalyzer
             .ToHashSet(StringComparer.Ordinal);
 
         var autoBannedOperators = new HashSet<string>(StringComparer.Ordinal);
+        var groupMembers = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         var groups = new List<(string Covenant, int Count)>();
 
         void AddToGroup(string covenant, string operatorName)
         {
+            if (!groupMembers.TryGetValue(covenant, out var members))
+                groupMembers[covenant] = members = new HashSet<string>(StringComparer.Ordinal);
+            if (!members.Add(operatorName)) return;
             autoBannedOperators.Add(operatorName);
             var index = groups.FindIndex(g => g.Covenant == covenant);
             if (index >= 0) groups[index] = (covenant, groups[index].Count + 1);
@@ -340,6 +344,10 @@ public sealed class BanScreenAnalyzer
             if (primary is not null && bannedCoreCovenants.Contains(primary))
             {
                 AddToGroup(primary, op.Name);
+                // The in-game list also shows the operator under a banned additional covenant it holds.
+                foreach (var covenant in result.AdditionalCovenants)
+                    if (covenant.IsBanned && additional.Contains(covenant.Name))
+                        AddToGroup(covenant.Name, op.Name);
                 continue;
             }
 
@@ -348,9 +356,9 @@ public sealed class BanScreenAnalyzer
             var hasUsableCore = primary is not null
                 && drawnCoreCovenants.Contains(primary) && !bannedCoreCovenants.Contains(primary);
             if (hasUsableCore) continue;
-            var bannedAdditional = result.AdditionalCovenants.FirstOrDefault(c => c.IsBanned && additional.Contains(c.Name));
-            if (bannedAdditional is not null)
-                AddToGroup(bannedAdditional.Name, op.Name);
+            foreach (var covenant in result.AdditionalCovenants)
+                if (covenant.IsBanned && additional.Contains(covenant.Name))
+                    AddToGroup(covenant.Name, op.Name);
         }
 
         BanGroupsComputed?.Invoke(groups);
