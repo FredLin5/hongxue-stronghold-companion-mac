@@ -185,6 +185,7 @@ public sealed class AppState : IDisposable
         {
             if (busy) state.GameInfo.Begin();
         });
+        analyzer.BanGroupsComputed += groups => Dispatcher.UIThread.Post(() => state.GameInfo.SetGroups(groups));
         analyzer.AutoBanListComputed += names => Dispatcher.UIThread.Post(() =>
         {
             state.BanVm.SetBans(names);

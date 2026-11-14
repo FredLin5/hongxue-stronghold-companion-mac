@@ -32,6 +32,9 @@ public partial class GameInfoViewModel : ObservableObject
     public ObservableCollection<string> AvailableCoreCovenants { get; } = [];
     public ObservableCollection<string> BannedOperators { get; } = [];
 
+    /// <summary>Per-covenant counts of the ban list, for comparing against the in-game grouping.</summary>
+    public ObservableCollection<string> BanGroups { get; } = [];
+
     public void Begin()
     {
         IsBusy = true;
@@ -51,6 +54,12 @@ public partial class GameInfoViewModel : ObservableObject
     {
         EnemyBoss = enemy.BossName;
         EnemyTypes = string.Join(" · ", enemy.EnemyTypes);
+    }
+
+    public void SetGroups(IReadOnlyList<(string Covenant, int Count)> groups)
+    {
+        BanGroups.Clear();
+        foreach (var (covenant, count) in groups) BanGroups.Add($"{covenant} {count}");
     }
 
     public void SetBannedOperators(IEnumerable<string> names)
@@ -82,6 +91,7 @@ public partial class GameInfoViewModel : ObservableObject
         BannedAdditionalCovenants.Clear();
         AvailableCoreCovenants.Clear();
         BannedOperators.Clear();
+        BanGroups.Clear();
         BannedOperatorCount = 0;
         EnemyBoss = "";
         EnemyTypes = "";

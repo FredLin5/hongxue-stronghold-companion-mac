@@ -96,7 +96,10 @@ if (args.Contains("--ban") || banFileIndex >= 0)
         "bans core=" + string.Join(",", r.CoreCovenants.Where(c => c.IsBanned).Select(c => c.Name))
         + " | additional=" + string.Join(",", r.AdditionalCovenants.Where(c => c.IsBanned).Select(c => c.Name))
         + " | enemy=" + (r.EnemyFaction ?? "-"));
-    analyzer.AutoBanListComputed += names => Console.WriteLine("auto bans: " + string.Join(" / ", names));
+    analyzer.AutoBanListComputed += names => Console.WriteLine($"auto bans ({names.Count}): " + string.Join(" / ", names));
+    analyzer.BanGroupsComputed += groups => Console.WriteLine(
+        "groups: " + string.Join(" · ", groups.Select(g => $"{g.Covenant} {g.Count}"))
+        + $" (sum {groups.Sum(g => g.Count)})");
     analyzer.EnemyDetected += e => Console.WriteLine(
         $"enemy: boss={e.BossName} types={string.Join("/", e.EnemyTypes)}");
     analyzer.AnalysisFailed += m => Console.WriteLine("analysis failed: " + m);

@@ -61,6 +61,9 @@ public sealed class BanScreenAnalyzer
     /// </summary>
     public event Action<IReadOnlyList<string>>? AutoBanListComputed;
 
+    /// <summary>Ban count per covenant, mirroring the in-game grouping (for display/diagnostics).</summary>
+    public event Action<IReadOnlyList<(string Covenant, int Count)>>? BanGroupsComputed;
+
     /// <summary>
     /// Raised when a full-screen game-window announcement should be shown/hidden.
     /// </summary>
@@ -301,24 +304,59 @@ public sealed class BanScreenAnalyzer
             .Select(c => c.Name)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToHashSet(StringComparer.Ordinal);
-        var bannedCovenants = bannedCoreCovenants
-            .Concat(bannedAdditionalCovenants)
+
+        // Covenants drawn this run (the panel lists them all, banned or not). An operator that has
+        // no drawn core covenant is simply not in the shop; if one of its additional covenants is
+        // banned it cannot be used at all, and the game lists it under that additional covenant.
+        var drawnCoreCovenants = result.CoreCovenants
+            .Select(c => c.Name)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToHashSet(StringComparer.Ordinal);
 
         var autoBannedOperators = new HashSet<string>(StringComparer.Ordinal);
+        var groups = new List<(string Covenant, int Count)>();
+
+        void AddToGroup(string covenant, string operatorName)
+        {
+            autoBannedOperators.Add(operatorName);
+            var index = groups.FindIndex(g => g.Covenant == covenant);
+            if (index >= 0) groups[index] = (covenant, groups[index].Count + 1);
+            else groups.Add((covenant, 1));
+        }
+
         foreach (var op in _operators)
         {
             if (string.IsNullOrWhiteSpace(op.Name))
                 continue;
+            // Unselected 自选干员 are not part of the season pool, so they are not in the game's list.
+            if (op.IsCustom && !op.IsSelectedCustom)
+                continue;
 
-            // Same rule as the planner: unavailable only when every covenant of the operator is banned.
-            if (CovenantBanRules.IsExcluded(op.CoreCovenants, op.AdditionalCovenants, bannedCovenants))
-                autoBannedOperators.Add(op.Name);
+            var core = op.CoreCovenants.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+            var additional = op.AdditionalCovenants.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+
+            // Banned core covenant: the operator belongs to it, so it is out.
+            var bannedCore = result.CoreCovenants.FirstOrDefault(c => c.IsBanned && core.Contains(c.Name));
+            if (bannedCore is not null)
+            {
+                AddToGroup(bannedCore.Name, op.Name);
+                continue;
+            }
+
+            // Operators without a usable core covenant (none drawn, or all drawn ones banned) are
+            // ruled out by a banned additional covenant instead.
+            var hasUsableCore = core.Any(c => drawnCoreCovenants.Contains(c) && !bannedCoreCovenants.Contains(c));
+            if (hasUsableCore) continue;
+            var bannedAdditional = result.AdditionalCovenants.FirstOrDefault(c => c.IsBanned && additional.Contains(c.Name));
+            if (bannedAdditional is not null)
+                AddToGroup(bannedAdditional.Name, op.Name);
         }
+
+        BanGroupsComputed?.Invoke(groups);
 
         AppLogger.Info("BanAnalyzer",
             $"Auto-ban computed: total={autoBannedOperators.Count} " +
-            $"ruleContext(coreBanned={bannedCoreCovenants.Count}, additionalBanned={bannedAdditionalCovenants.Count}, banned={bannedCovenants.Count}) " +
+            $"groups=[{string.Join(", ", groups.Select(g => $"{g.Covenant}:{g.Count}"))}] " +
             $"operators=[{string.Join(", ", autoBannedOperators)}]");
 
         return autoBannedOperators.ToList();
