@@ -15,6 +15,9 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
   <img src="images/mac/game-info.png" width="240" alt="macOS 本局信息（Ban 位 / 敌方领袖）" />
   <img src="images/mac/operators-bans.png" width="240" alt="macOS 干员页：本局禁用标记" />
   <img src="images/mac/lineups-strategies.png" width="240" alt="macOS 阵容页：推荐策略" />
+  <img src="images/mac/planner-goals.png" width="240" alt="macOS 阵容规划：目标盟约与档位" />
+  <img src="images/mac/planner-results.png" width="240" alt="macOS 阵容规划：候选与人数×转职组合" />
+  <img src="images/mac/planner-hover.png" width="360" alt="macOS 阵容规划：盟约悬停详情（档位、效果、持有干员）" />
   <img src="images/mac/settings.png" width="240" alt="macOS 连接设置" />
 </p>
 
@@ -26,6 +29,7 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 | 装备浏览（搜索、等阶/分类筛选） | ✅ |
 | 追踪列表（干员/装备、过渡/精锐标记、已获取、移除、清空） | ✅ |
 | 已保存阵容列表（查看干员、推荐策略、一键追踪、删除） | ✅ |
+| 阵容规划：Ⅰ／Ⅱ 目标 × 8/9 人 × 0~2 次转职候选搜索，必带干员、本局策略、Ban 联动，结果可保存/追踪 | ✅ |
 | 阵容导入：粘贴森空岛攻略链接，或复制 Windows 端的阵容 JSON | ✅ |
 | 通过 PlayCover MaaTools 连接游戏（截图 + 触摸） | ✅ |
 | 通过 ADB 连接模拟器 | ✅（与 Windows 同一套 MaaAdbController 逻辑） |
@@ -35,8 +39,10 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 | 深色/浅色主题、识别主题选择、连接设置 | ✅ |
 | 本局信息识别：Ban 盟约 / 禁用干员 / 敌方领袖（游戏内放大镜页面），打开页面自动识别 | ✅ |
 | 干员页联动：本局禁用标记、盟约 chip 禁用态、只看本局可用 | ✅ |
-| 站位规划 / 地图模拟 / 游戏内叠加层 | ⛔ 未移植 |
-| 阵容编辑器、森空岛攻略导入 | ⛔ 未移植（可直接读取 Windows 端已保存的阵容 JSON） |
+| 道中路线（开局 → 大成阶段推演） | ⛔ 未移植（Core `LineupRoutePlanner` 可直接复用，缺 Avalonia 版阶段渲染） |
+| 游戏内叠加层（商店整卡高亮） | 🟡 原型：已实机验证对齐，默认关闭 |
+| 站位规划 / 地图模拟 | ⛔ 未移植 |
+| 阵容编辑器（手动编辑槽位/精锐/装备） | ⛔ 未移植（规划结果可直接保存；也可读取 Windows 端阵容 JSON） |
 | 全局快捷键、托盘、自动更新 | ⛔ 未移植 |
 
 `data/`、追踪状态、阵容目录的 JSON 格式与 Windows 版一致：把 Windows 的
@@ -158,15 +164,62 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
   6/6 通过，名称与 `SHOP_SAMPLES.md` 记录一致；主题判定 Terminal/Ursus 正确。
 - `MaaPlayCoverController` 在无服务时可以给出明确的连接失败提示；有服务时的实机联调见下文“待办”。
 
+**阵容规划（2026-11-14）**：`tools/MacProbe` 新增 8 项离线检查，直接用 macOS 版同一套 Core 代码跑通
+「目标 → 搜索 → 保存 → 追踪 → Ban 同步」：
+
+```
+PLANNER SEARCH PASS · 目标 乌萨斯 3、精准 2 · 6/6 组有解 · 当前 3 套候选
+PLANNER STRATEGY PASS · 暴躁铁皮 8 组 / 4 档转职
+PLANNER SAVE PASS · “规划 乌萨斯Ⅰ 精准Ⅰ 9人0转” 9 个槽位
+PLANNER TRACK PASS · 9 名干员加入追踪
+PLANNER BAN PASS · 核心盟约“乌萨斯”本局已被 Ban。
+PLANNER BAN SYNC PASS · 乌萨斯 禁用=True 已选=0 剩余目标=1
+```
+
+界面侧用 `.run-settings` 的开发变量启动实机进程验证：`规划` 页在 400px 窄栏下渲染目标瓷砖
+（两列、Ⅰ/Ⅱ 档位、可用人数、禁用红框）、6 个组合格与候选卡片；点「保存」后 `lineups/` 写入
+`规划 乌萨斯Ⅰ 精准Ⅰ 9人0转`（9 个槽位），「阵容」页随即列出该阵容；「追踪」写入 9 名干员并落盘
+`tracking.json`。截图见 `docs/images/mac/planner-goals.png`、`planner-results.png`。
+
+悬停卡片用 CuaDriver（`/Applications/CuaDriver.app`，`cua-driver call` / AX 元素 token）在真机上驱动验证：
+真实指针进入盟约瓷砖 / 干员行 → 320ms 后卡片出现在面板右缘；卡片内容与 `MacProbe` 读到的数据一致
+（炎：Ⅰ 3 人 / Ⅱ 6 人、两条效果、10 名持有者；乌啾：医疗·链愈师、奶位·叠层【乌萨斯】、普通/精锐特性与技能）；
+移出窗口、点击页面、滚轮都会让卡片消失，切到别的条目会换内容。截图见 `docs/images/mac/planner-hover.png`。
+（踩到的三个坑：Avalonia 里 `Popup` 的 `ContentPresenter` 必须显式 `ContentTemplate` + 显式 `DataContext`，
+以及模板里漏掉 `Tier` 转换器会让弹层渲染成空卡片；`DockPanel` 行要 `Background="Transparent"` 才参与命中测试。）
+
 ## 阵容从哪来
 
-macOS 版没有阵容编辑器，阵容来自两处：
+macOS 版没有阵容编辑器，阵容来自三处：
 
-1. **导入森空岛攻略**：阵容页右上角「导入」→ 粘贴 `game.skland.com/arknights/stronghold-guide/detail?guideId=…`
+1. **规划结果**：「规划」页选好目标后，候选卡片上的「保存」会写成一套阵容（含计划转职的变形同构体与转职装备）。
+2. **导入森空岛攻略**：阵容页右上角「导入」→ 粘贴 `game.skland.com/arknights/stronghold-guide/detail?guideId=…`
    形式的攻略详情链接；解析出的干员、阶段、推荐策略会写入 `~/Library/Application Support/ASPAssistant/lineups/`。
-2. **从 Windows 复制**：把 `%AppData%\ASPAssistant\lineups` 里的 JSON 拷到上面的目录，重启后出现。
+3. **从 Windows 复制**：把 `%AppData%\ASPAssistant\lineups` 里的 JSON 拷到上面的目录，重启后出现。
 
-Ban 位录入只影响干员页的可用性标记，不会生成阵容。
+Ban 位录入只影响干员页的可用性标记和规划的目标可选性，不会自己生成阵容。
+
+## 阵容规划（macOS）
+
+「规划」标签页复用 Core 的 `LineupPlannerViewModel` / `LineupPlanner`（与 Windows 端同一份搜索代码），
+Avalonia 端只负责重画界面：`Views/PlannerPage.axaml` + `PlannerPage.axaml.cs`。
+
+- **目标**：核心/附加盟约各一块，点 Ⅰ / Ⅱ 选档位（再点一次取消）。被 Ban 的核心盟约不可选；被 Ban 的附加盟约
+  仍可由剩余持有者凑人数，但 Ⅱ 档凑不满时只提供 Ⅰ。Ⅱ 档依赖叠层/精锐等条件的盟约标注“规划不提供 Ⅱ 级效果”。
+- **本局策略**：其他 / 暴躁铁皮 / 优等生 / 变形同构；暴躁铁皮可勾选精锐（转 5 个盟约），
+  转职档位随之变成 0~3。
+- **必带干员**：输入名称回车或点建议；「从追踪导入」把当前追踪的干员一次性固定。
+- **结果**：人数×转职 6（暴躁铁皮 8）个组合各自显示候选数，选中后列出候选卡片：目标盟约标签
+  （绿色）、其他已激活盟约、干员两列头像 + 契约/转职/必带标记，底部提示奶位缺失、非必要转职等。
+  「保存」写入 `lineups/`（回到「阵容」页可见），「追踪」按当前多队伍设置合并进追踪列表，状态栏给出一行反馈。
+- **悬停详情**：悬停目标盟约 → 卡片显示档位要求（Ⅰ/Ⅱ 人数）、本局可用 / 被 Ban / 可转职标记、游戏内效果
+  （含 `<条件>` 行）、Ban 说明，以及全部持有者头像（本局不可用的变灰加删除线）；悬停候选里的干员 → 显示职业 /
+  子职业 / 位置 / 阻挡、盾奶叠等定位、盟约、必带 / 转职 / 调和提示，以及**普通 / 精锐**各自的特性与技能
+  （消耗、初始、持续、描述）。悬停 320ms 后弹出，卡片贴在面板右缘、纵向跟随所悬停的条目，移开 / 点击 / 滚轮即收起。
+- **Ban 联动**：本局信息识别完成后 `PlannerVm.SetAvailableCovenants(...)`，Ban 变化会自动取消被禁的核心目标并重算；
+  规划页隐藏时只标记过期，切回来再算（`IsActive`）。
+- 未提供 Windows 端的「道中路线」推演；候选卡片也不再需要「展开」，窄栏下直接常驻两列干员。
+  `SelectGoal` 这个公开方法用于按名称选中目标，界面与测试共用。
 
 ## 策略与筛选顺序
 
@@ -237,11 +290,13 @@ xattr -dr com.apple.quarantine "鸿雪·卫戍助手.app"
 
 | 工具 | 用途 |
 | --- | --- |
-| `tools/MacProbe` | 冒烟测试：SkiaSharp 编解码、MaaFramework OCR、6 张商店样本、主题判定 |
+| `tools/MacProbe` | 冒烟测试：SkiaSharp 编解码、MaaFramework OCR、6 张商店样本、主题判定、追踪存取、阵容规划（搜索/策略/保存/追踪/Ban 同步） |
 | `tools/PlayToolsMock` | PlayCover 协议集成测试：模拟 MaaTools 服务，验证截图、OCR、触摸、滑动 |
 | `tools/PlayCoverProbe` | 真机探针：截图/主题分数/商店 OCR（`--watch`）、`--ban` 跑本局信息识别、`--tap x y`/`--swipe x1 y1 x2 y2` 发触摸（坐标以 1920×1080 为基准） |
-| `tools/mac-dev/shot.sh <tab> <out.png>` | 启动已构建的 app 并截取指定标签页窗口（`operators`/`equipment`/`tracking`/`lineups`/`settings`） |
+| `tools/mac-dev/shot.sh <tab> <out.png>` | 启动已构建的 app 并截取指定标签页窗口（`operators`/`equipment`/`tracking`/`lineups`/`planner`/`settings`） |
 | `ASPASSISTANT_MAC_START_PAGE` | 指定启动标签页（开发调试） |
+| `ASPASSISTANT_MAC_PLANNER_GOALS` | `乌萨斯:1,精准:1` 形式预选规划目标（macOS 没有点击自动化，截图用） |
+| `ASPASSISTANT_MAC_PLANNER_SHOW` | 设为 `results` 时启动即显示规划结果页 |
 | `ASPASSISTANT_SETTINGS_DIR` | 指定配置目录，避免污染 `~/Library/Application Support/ASPAssistant` |
 
 ```bash
@@ -255,5 +310,6 @@ CI：`.github/workflows/mac-build.yml` 在 `macos-14` 上构建 Core/Avalonia �
 
 1. 开局信息页的自动检测（现在手动点「识别本局信息」；Core 的 `OcrScannerService` 已有自动检测逻辑）。
 2. 游戏内叠加层：用 CoreGraphics 窗口列表跟踪 PlayCover 游戏窗口位置，叠一个无边框透明窗口显示商店标记。
-3. 阵容编辑器与森空岛导入（`SklandGuideImporter` 已在 Core 中，纯 HTTP + JSON）。
+3. 阵容编辑器（手动改槽位/精锐/装备）与道中路线推演：`LineupEditorViewModel`、`LineupRoutePlanner` 都在 Core 里，
+   缺的是 Avalonia 版编辑器与阶段视图；规划结果已经可以直接保存成阵容。
 4. 站位规划/地图模拟（Core 的 `PlacementPlanner`、`GarrisonBoardStore` 均可直接复用，缺 Avalonia 版棋盘渲染）。
