@@ -28,7 +28,7 @@ Console.WriteLine($"captured {width}x{height} -> {outPath}");
 
 var dataDir = Path.Combine(root, "data");
 var detector = new GameShopThemeDetector(Path.Combine(dataDir, "shop_theme_refs.json"));
-Console.WriteLine($"theme(1920): {detector.Detect(frame)}");
+Console.WriteLine($"theme(1920, threshold 30): {detector.Detect(frame, 30)}");
 Console.WriteLine("scores: " + string.Join(", ", detector.Score(frame).Select(s => $"{s.Theme}={s.Score:F1}")));
 var full = connection.CaptureDeviceScreen(4000);
 if (full is not null)

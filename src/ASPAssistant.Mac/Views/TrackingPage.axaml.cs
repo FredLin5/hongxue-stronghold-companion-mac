@@ -9,11 +9,28 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ASPAssistant.Mac.Views;
 
+/// <summary>One item currently on sale in the shop, with its tracking state.</summary>
+public partial class ShopItemViewModel : ObservableObject
+{
+    public required string Name { get; init; }
+    public required TrackingType Type { get; init; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Label))]
+    private bool _isTracked;
+
+    public string Label => IsTracked ? $"✓ {Name}" : $"+ {Name}";
+}
+
 /// <summary>Page state: the shared tracking view model plus the last shop-scan results.</summary>
 public partial class TrackingPageViewModel : ObservableObject
 {
     public required TrackingViewModel Tracking { get; init; }
-    public ObservableCollection<string> MatchedNames { get; } = [];
+    public required ShopScanService Scanner { get; init; }
+    public ObservableCollection<ShopItemViewModel> ShopItems { get; } = [];
+
+    public bool HasShopItems => ShopItems.Count > 0;
+    public int ShopItemCount => ShopItems.Count;
 
     [ObservableProperty]
     private bool _autoScan;
@@ -27,7 +44,14 @@ public partial class TrackingPageViewModel : ObservableObject
         else Scanner.Stop();
     }
 
-    public required ShopScanService Scanner { get; init; }
+    public void ReplaceShopItems(IEnumerable<(string Name, TrackingType Type, bool IsTracked)> items)
+    {
+        ShopItems.Clear();
+        foreach (var (name, type, isTracked) in items)
+            ShopItems.Add(new ShopItemViewModel { Name = name, Type = type, IsTracked = isTracked });
+        OnPropertyChanged(nameof(HasShopItems));
+        OnPropertyChanged(nameof(ShopItemCount));
+    }
 }
 
 public partial class TrackingPage : UserControl
@@ -52,14 +76,32 @@ public partial class TrackingPage : UserControl
 
         state.Scanner.Scanned += OnScanned;
         state.TrackingVm.PropertyChanged += (_, _) => RefreshScanStatus();
+
+        // Start sampling automatically when a device connection is configured, so opening the
+        // app next to a running game immediately shows what is on sale.
+        if (state.Connection.IsDeviceCapture) _vm.AutoScan = true;
     }
 
     private void OnScanned(ShopScanResult result) => Dispatcher.UIThread.Post(() =>
     {
-        _vm.MatchedNames.Clear();
-        foreach (var item in result.Items) _vm.MatchedNames.Add(item.Name);
+        _vm.ReplaceShopItems(result.Items.Select(item => (
+            item.Name,
+            ResolveType(item.Name),
+            _state.TrackingVm.IsTracked(item.Name))));
         RefreshScanStatus();
     });
+
+    private string ThemeName => ThemeLabel(_vm.Scanner.Last?.Theme ?? _state.ShopTheme);
+
+    private static string ThemeLabel(GameShopTheme theme) => theme switch
+    {
+        GameShopTheme.Ursus => "乌萨斯",
+        GameShopTheme.Closure => "可露希尔",
+        _ => "终端"
+    };
+
+    private TrackingType ResolveType(string name) =>
+        _state.Operators.Any(o => o.Name == name) ? TrackingType.Operator : TrackingType.Equipment;
 
     private void RefreshScanStatus()
     {
@@ -69,8 +111,11 @@ public partial class TrackingPage : UserControl
             return;
         }
         _vm.ScanStatus = last.Error is { Length: > 0 } error
-            ? error
-            : $"{last.At:HH:mm:ss} · {last.Width}×{last.Height} · 在售 {last.Items.Count}";
+            ? (error.Contains("PlayCover", StringComparison.Ordinal) || error.Contains("ADB", StringComparison.Ordinal)
+                || error.Contains("无法截图", StringComparison.Ordinal)
+                ? "等待游戏连接…"
+                : error)
+            : $"{last.At:HH:mm:ss} · 在售 {last.Items.Count} · {ThemeName}";
     }
 
     private async void OnScanOnce(object? sender, RoutedEventArgs e)
@@ -78,6 +123,15 @@ public partial class TrackingPage : UserControl
         _vm.ScanStatus = "识别中…";
         await _state.Scanner.ScanOnceAsync();
         RefreshScanStatus();
+    }
+
+    private async void OnToggleShopItem(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button button || button.DataContext is not ShopItemViewModel item) return;
+        if (_state.TrackingVm.IsTracked(item.Name)) _state.TrackingVm.RemoveTracking(item.Name);
+        else _state.TrackingVm.AddTracking(item.Name, item.Type);
+        item.IsTracked = _state.TrackingVm.IsTracked(item.Name);
+        await _state.SaveTrackingAsync();
     }
 
     private async void OnToggleAcquired(object? sender, RoutedEventArgs e)

@@ -146,7 +146,7 @@ public sealed class AppState : IDisposable
             capture: () => state.Capture.CaptureScreen(),
             reader: reader,
             themeDetector: detector,
-            trackedNames: () => state.TrackedNames.ToList());
+            catalogNames: () => shopNames);
         state.Scanner = scanner;
         scanner.AutomaticThemeDetection = await settings.LoadAutomaticGameThemeAsync();
         scanner.ThemeDetected += theme =>

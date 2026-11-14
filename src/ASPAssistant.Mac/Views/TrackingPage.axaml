@@ -16,19 +16,25 @@
                     <TextBlock DockPanel.Dock="Right" FontSize="10" VerticalAlignment="Center"
                                Foreground="{DynamicResource TextMuted}" Text="{Binding ScanStatus}" />
                 </DockPanel>
-                <ItemsControl ItemsSource="{Binding MatchedNames}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{DynamicResource SuccessTint}" CornerRadius="10" Padding="7,2"
-                                    Margin="0,0,5,4">
-                                <TextBlock Text="{Binding}" FontSize="10" Foreground="{DynamicResource Success}" />
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel Spacing="4" IsVisible="{Binding HasShopItems}">
+                    <TextBlock FontSize="10" Foreground="{DynamicResource TextMuted}">
+                        <Run Text="本局在售 " /><Run Text="{Binding ShopItemCount}" /><Run Text=" 项 · 点击加入 / 取消追踪" />
+                    </TextBlock>
+                    <ItemsControl ItemsSource="{Binding ShopItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Classes="shopitem" Classes.tracked="{Binding IsTracked}"
+                                        Content="{Binding Label}" Click="OnToggleShopItem" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+                <TextBlock IsVisible="{Binding !HasShopItems}" FontSize="10" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextMuted}"
+                           Text="未识别到商品：请打开卫戍协议商店，并确认「设置 → 商店识别主题」与游戏内主题一致。" />
             </StackPanel>
         </Border>
 
@@ -107,7 +113,7 @@
 
                 <TextBlock FontSize="10" Foreground="{DynamicResource TextMuted}" Margin="2,14,2,0"
                            TextWrapping="Wrap"
-                           Text="在「干员」「装备」页点「追踪」添加目标；扫描商店后，本局在售的目标会显示在上方。" />
+                           Text="扫描后在上方点「+ 名称」即可加入追踪；追踪列表会随商店变化更新。未连接或不在商店时，扫描不会改动追踪记录。" />
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

@@ -103,6 +103,22 @@
         <Setter Property="Background" Value="{DynamicResource ChipSelectedBackground}" />
     </Style>
 
+    <Style Selector="Button.shopitem">
+        <Setter Property="Background" Value="{DynamicResource ChipBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="9,3" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+    <Style Selector="Button.shopitem.tracked">
+        <Setter Property="Background" Value="{DynamicResource SuccessTint}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Success}" />
+        <Setter Property="Foreground" Value="{DynamicResource Success}" />
+    </Style>
+
     <Style Selector="TextBox">
         <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />

@@ -10,7 +10,8 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 
 <p align="center">
   <img src="images/mac/operators.png" width="240" alt="macOS 干员浏览" />
-  <img src="images/mac/tracking.png" width="240" alt="macOS 追踪与在售标记" />
+  <img src="images/mac/tracking.png" width="240" alt="macOS 追踪页：本局在售商品" />
+  <img src="images/mac/tracking-confirmed.png" width="240" alt="macOS 追踪页：已加入追踪的商品" />
   <img src="images/mac/settings.png" width="240" alt="macOS 连接设置" />
 </p>
 
@@ -24,7 +25,9 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 | 已保存阵容列表（查看干员、一键追踪、删除） | ✅ |
 | 通过 PlayCover MaaTools 连接游戏（截图 + 触摸） | ✅ |
 | 通过 ADB 连接模拟器 | ✅（与 Windows 同一套 MaaAdbController 逻辑） |
-| 商店识别：主题判定 + 名称栏 OCR + 本局在售目标 | ✅ |
+| 商店识别：名称栏 OCR + **本局全部在售商品列表**（点一下加入追踪） | ✅ |
+| 自动扫描（启动即开始，可在追踪页关闭） | ✅ |
+| 商店主题：手动选择（自动指纹识别可选，PlayCover 下阈值放宽） | ✅ |
 | 深色/浅色主题、识别主题选择、连接设置 | ✅ |
 | 截图录入 Ban 位 / 敌方首领识别 | ⛔ 未移植 |
 | 站位规划 / 地图模拟 / 游戏内叠加层 | ⛔ 未移植 |
@@ -92,8 +95,9 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
    Bundle ID `com.hypergryph.arknights`，点 **测试连接**。成功时状态栏显示
    `PlayCover 已连接 · <宽>×<高>`。
 4. 游戏分辨率需为 16∶9 横屏（PlayCover 显示设置里选 1080p），否则会提示“请设置为横屏 16∶9”。
-5. 打开游戏商店 → 助手「追踪」页点 **扫描当前商店**，或打开 **自动扫描**（每 2.5 秒一次）。
-   识别出的在售目标会以绿色标签显示在扫描卡片里。
+5. 打开游戏商店 → 助手启动时会自动扫描（每 3 秒）；也可点 **扫描当前商店** 手动刷新。
+   卡片里会列出**本局在售的全部商品**，点「+ 名称」加入追踪，已追踪的显示为绿色「✓ 名称」。
+   不在商店或未连接时只提示、不改动追踪记录。
 
 ## 验证记录（2026-11-14）
 
@@ -122,7 +126,8 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
   移植时已把“点击”改成 down+up、把“滑动”改成 down→move×8→up 的触摸序列，因此 PlayCover 下点击和滑动可用；
   `ScrollInformationPanelDown` 也走这条路径。依赖滚轮补读的 Ban 识别流程本次尚未移植。
 - 商店识别沿用 16∶9、以 1080p 为基准的相对坐标；本机 4K PlayCover 实机已验证终端主题，其他分辨率/界面缩放仍需实机验证。
-- 商店主题自动识别在 PlayCover 4K 下不可靠（见上），默认关闭；请在设置页手动选主题。
+- 商店主题自动识别默认关闭（设置页可开）：PlayCover 4K 帧下正确主题得分约 25（1080p 参考图为 4~5），
+  因此 macOS 侧把绝对阈值放宽到 30，并要求与次优主题相差 ≥8；实测本机帧判定为 Ursus（乌萨斯簇）正确。
 - macOS 界面尚未实现游戏内叠加层（原 `OverlayWindow`），所以商店标记只在助手窗口内显示。
 - 自动更新、托盘、全局快捷键依赖 Windows API，macOS 版暂未提供。
 

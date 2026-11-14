@@ -41,11 +41,30 @@ foreach (var (file, theme, expected) in samples)
     Console.WriteLine($"{(ok ? "PASS" : "FAIL")} {file} ({w}x{h}) → {got.Count} 项: {string.Join(" / ", got)}");
 }
 
+// Tracking round-trip: add -> save -> reload, the path behind the in-app "追踪" buttons.
+var tempSettings = Path.Combine(Path.GetTempPath(), "aspa-macprobe-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(tempSettings);
+var store = new ASPAssistant.Core.Data.JsonDataStore(dataDir);
+var (covenants, jobChangeMap) = await store.LoadCovenantsAsync();
+var calculator = new ASPAssistant.Core.Services.CovenantCalculator(operators, covenants, jobChangeMap);
+var settingsManager = new ASPAssistant.Core.Data.SettingsManager(tempSettings);
+var trackingVm = new ASPAssistant.Core.ViewModels.TrackingViewModel();
+trackingVm.AddTracking("褐果", TrackingType.Operator);
+trackingVm.AddTracking("随身身份牌", TrackingType.Equipment);
+await settingsManager.SaveTrackingStateAsync(trackingVm.CaptureState());
+var reloaded = await settingsManager.LoadTrackingStateAsync(calculator.EquipmentRules);
+var roundTrip = reloaded.Entries.Any(e => e.Name == "褐果" && e.Type == TrackingType.Operator)
+    && reloaded.Entries.Any(e => e.Name == "随身身份牌" && e.Type == TrackingType.Equipment)
+    && !reloaded.Entries.Any(e => e.Name == "拜松");
+Console.WriteLine(roundTrip ? "TRACKING ROUND-TRIP PASS" : "TRACKING ROUND-TRIP FAIL");
+if (!roundTrip) failures++;
+
 var detector = new GameShopThemeDetector(Path.Combine(dataDir, "shop_theme_refs.json"));
 foreach (var file in new[] { "shop-terminal-tier1-color.png", "shop-frontier-tier1-color.png" })
 {
     var bytes = File.ReadAllBytes(Path.Combine(testDir, file));
-    Console.WriteLine($"theme {file} → {detector.Detect(bytes)}");
+    Console.WriteLine($"theme {file} → {detector.Detect(bytes)}  scores: "
+        + string.Join(", ", detector.Score(bytes).Select(x => $"{x.Theme}={x.Score:F1}")));
 }
 
 ocr.Dispose();

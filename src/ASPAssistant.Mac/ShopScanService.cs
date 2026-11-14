@@ -18,14 +18,15 @@ public sealed record ShopScanResult(
 
 /// <summary>
 /// Periodic shop scan for the macOS build: capture the game (PlayCover or ADB),
-/// detect the shop theme, OCR the name strip and report the tracked items on sale.
+/// OCR the name strip and report every catalogue item on sale. Filtering against the
+/// tracking list happens in the UI, so a scan is useful even before anything is tracked.
 /// </summary>
 public sealed class ShopScanService : IDisposable
 {
     private readonly Func<byte[]?> _capture;
     private readonly ShopReader _reader;
     private readonly GameShopThemeDetector _themeDetector;
-    private readonly Func<IReadOnlyList<string>> _trackedNames;
+    private readonly Func<IReadOnlyList<string>> _catalogNames;
     private readonly Timer _timer;
     private int _busy;
     private bool _disposed;
@@ -45,12 +46,12 @@ public sealed class ShopScanService : IDisposable
     public bool IsRunning => _timer.Enabled;
 
     public ShopScanService(Func<byte[]?> capture, ShopReader reader,
-        GameShopThemeDetector themeDetector, Func<IReadOnlyList<string>> trackedNames, int intervalMs = 2500)
+        GameShopThemeDetector themeDetector, Func<IReadOnlyList<string>> catalogNames, int intervalMs = 3000)
     {
         _capture = capture;
         _reader = reader;
         _themeDetector = themeDetector;
-        _trackedNames = trackedNames;
+        _catalogNames = catalogNames;
         _timer = new Timer(intervalMs);
         _timer.Elapsed += (_, _) => _ = ScanOnceAsync();
     }
@@ -81,14 +82,16 @@ public sealed class ShopScanService : IDisposable
             }
 
             var (width, height) = ImageBytes.GetDimensions(frame);
-            var theme = AutomaticThemeDetection ? _themeDetector.Detect(frame) : null;
+            // Looser absolute threshold than Windows: 4K PlayCover frames downscaled to 1080p
+            // score ~25 for the correct theme (runner-up ~39); the gap check still guards it.
+            var theme = AutomaticThemeDetection ? _themeDetector.Detect(frame, maxScore: 30) : null;
             if (theme is { } detected)
             {
                 _reader.Theme = detected;
                 ThemeDetected?.Invoke(detected);
             }
 
-            var items = await _reader.ReadAsync(frame, width, height, _trackedNames());
+            var items = await _reader.ReadAsync(frame, width, height, _catalogNames());
             var result = new ShopScanResult(DateTime.Now, items, theme, null, frame, width, height);
             Publish(result);
             ItemsRecognized?.Invoke(items);

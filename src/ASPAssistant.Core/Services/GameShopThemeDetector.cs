@@ -42,7 +42,12 @@ public sealed class GameShopThemeDetector
     /// <summary>UI scaling factors the control may be rendered at.</summary>
     private static readonly double[] Scales = [1.0, 0.85, 1.1, 1.2, 1.3, 0.75, 1.4, 1.5, 1.65, 1.75, 1.9, 2.0, 2.2];
 
-    public GameShopTheme? Detect(byte[] screenshot)
+    /// <param name="maxScore">
+    /// Absolute match distance a theme must stay under. The Windows build keeps 22 (1080p references);
+    /// the macOS PlayCover path passes a looser value because 4K frames downscaled to 1080p blur the
+    /// fingerprint (measured: correct theme ≈25, runner-up ≈39, gap still wide).
+    /// </param>
+    public GameShopTheme? Detect(byte[] screenshot, double maxScore = 22)
     {
         using var image = Raster.Decode(screenshot);
         if (image is null) return null;
@@ -60,7 +65,7 @@ public sealed class GameShopThemeDetector
             }
         }
         var ranked = scores.OrderBy(score => score.Score).ToArray();
-        return ranked[0].Score <= 22 && ranked[1].Score - ranked[0].Score >= 8 ? ranked[0].Theme : null;
+        return ranked[0].Score <= maxScore && ranked[1].Score - ranked[0].Score >= 8 ? ranked[0].Theme : null;
     }
 
     private static byte[] Fingerprint(Raster image, double scale)
