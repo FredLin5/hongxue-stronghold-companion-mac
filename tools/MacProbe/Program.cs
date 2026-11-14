@@ -57,6 +57,16 @@ var roundTrip = reloaded.Entries.Any(e => e.Name == "褐果" && e.Type == Tracki
     && reloaded.Entries.Any(e => e.Name == "随身身份牌" && e.Type == TrackingType.Equipment)
     && !reloaded.Entries.Any(e => e.Name == "拜松");
 Console.WriteLine(roundTrip ? "TRACKING ROUND-TRIP PASS" : "TRACKING ROUND-TRIP FAIL");
+
+// Banned covenant chips must be re-ordered to the end of the row.
+var browseVm = new ASPAssistant.Core.ViewModels.OperatorBrowseViewModel();
+browseVm.LoadOperators(operators.Where(o => o.RequiredStrategyId.Length == 0).ToList());
+browseVm.SetCovenantBanChecker(n => n == "莱塔尼亚");
+browseVm.NotifyBansChanged();
+var blocked = browseVm.CoreChips.Select(c => c.IsBlocked).ToList();
+var firstBlocked = blocked.IndexOf(true);
+var sorted = firstBlocked < 0 || !blocked.Skip(firstBlocked).Any(x => !x);
+Console.WriteLine(sorted ? "CHIP SORT PASS" : "CHIP SORT FAIL: " + string.Join(",", browseVm.CoreChips.Select(c => $"{c.Value}:{c.IsBlocked}")));
 if (!roundTrip) failures++;
 
 var detector = new GameShopThemeDetector(Path.Combine(dataDir, "shop_theme_refs.json"));

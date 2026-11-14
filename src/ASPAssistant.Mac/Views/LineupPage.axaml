@@ -27,6 +27,27 @@
                                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                                Margin="0,0,8,0" />
                                 </DockPanel>
+                                <StackPanel Spacing="4" IsVisible="{Binding HasRecommendedStrategies}">
+                                    <TextBlock Text="推荐策略" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                                    <ItemsControl ItemsSource="{Binding RecommendedStrategies}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="tag green" ToolTip.Tip="{Binding Tooltip}">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <Image Width="16" Height="16"
+                                                               Source="{Binding Strategy.IconPath, Converter={StaticResource Icon}}" />
+                                                        <TextBlock Text="{Binding Strategy.Name}" FontSize="10" />
+                                                        <TextBlock Text="{Binding TagText}" FontSize="9"
+                                                                   Foreground="{DynamicResource TextMuted}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
                                 <ItemsControl ItemsSource="{Binding Slots}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>

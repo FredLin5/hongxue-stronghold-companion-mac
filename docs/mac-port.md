@@ -14,6 +14,7 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
   <img src="images/mac/tracking-confirmed.png" width="240" alt="macOS 追踪页：已加入追踪的商品" />
   <img src="images/mac/game-info.png" width="240" alt="macOS 本局信息（Ban 位 / 敌方领袖）" />
   <img src="images/mac/operators-bans.png" width="240" alt="macOS 干员页：本局禁用标记" />
+  <img src="images/mac/lineups-strategies.png" width="240" alt="macOS 阵容页：推荐策略" />
   <img src="images/mac/settings.png" width="240" alt="macOS 连接设置" />
 </p>
 
@@ -24,7 +25,7 @@ Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows
 | 干员浏览（搜索、等阶筛选、盟约筛选、头像列表） | ✅ |
 | 装备浏览（搜索、等阶/分类筛选） | ✅ |
 | 追踪列表（干员/装备、过渡/精锐标记、已获取、移除、清空） | ✅ |
-| 已保存阵容列表（查看干员、一键追踪、删除） | ✅ |
+| 已保存阵容列表（查看干员、推荐策略、一键追踪、删除） | ✅ |
 | 通过 PlayCover MaaTools 连接游戏（截图 + 触摸） | ✅ |
 | 通过 ADB 连接模拟器 | ✅（与 Windows 同一套 MaaAdbController 逻辑） |
 | 商店识别：名称栏 OCR + **本局全部在售商品列表**（点一下加入追踪） | ✅ |
@@ -155,6 +156,12 @@ scripts/build-mac.sh --run    # 构建 + 打 bundle + 打开
 - `tools/MacProbe` 在 macOS 上用真实 PaddleOCR 模型跑 `src/ASPAssistant.Tests/TestData` 里的 6 张商店截图：
   6/6 通过，名称与 `SHOP_SAMPLES.md` 记录一致；主题判定 Terminal/Ursus 正确。
 - `MaaPlayCoverController` 在无服务时可以给出明确的连接失败提示；有服务时的实机联调见下文“待办”。
+
+## 策略与筛选顺序
+
+- 阵容页会显示该阵容自带的推荐策略：图标 + 名称 + 标签（阵容核心 / 优选 / 次选），按标签排序，
+  悬停显示效果描述、初始生命、解锁条件与发起人（来自 `data/strategies.json` 的 61 条策略）。
+- 干员页的盟约 chip 在识别到 ban 之后自动把**被禁用的盟约排到后面**，可用的排在前面（保持原有顺序）。
 
 ## 已知限制
 

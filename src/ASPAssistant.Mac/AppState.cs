@@ -112,6 +112,25 @@ public sealed class AppState : IDisposable
         };
         trackingVm.LoadState(trackingState);
 
+        var strategyById = strategies.ToDictionary(s => s.Id, StringComparer.Ordinal);
+        foreach (var lineup in lineups)
+        {
+            lineup.RecommendedStrategies = lineup.Strategies
+                .Select(slot => strategyById.TryGetValue(slot.StrategyId, out var strategy)
+                    ? new RecommendedStrategy { Strategy = strategy, Tags = slot.Tags }
+                    : null)
+                .Where(s => s is not null)
+                .Select(s => s!)
+                .OrderBy(s => s.Tags.FirstOrDefault() switch
+                {
+                    StrategyTag.阵容核心 => 0,
+                    StrategyTag.优选 => 1,
+                    StrategyTag.次选 => 2,
+                    _ => 3
+                })
+                .ToList();
+        }
+
         var lineupVm = new LineupViewModel(lineupStore, calculator);
         lineupVm.LoadLineups(lineups);
 

@@ -76,6 +76,13 @@ public class Lineup
     [JsonPropertyName("strategies")]
     public List<LineupStrategySlot> Strategies { get; set; } = [];
 
+    /// <summary>Resolved strategy objects for display; filled from data/strategies.json at load.</summary>
+    [JsonIgnore]
+    public List<RecommendedStrategy> RecommendedStrategies { get; set; } = [];
+
+    [JsonIgnore]
+    public bool HasRecommendedStrategies => RecommendedStrategies.Count > 0;
+
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

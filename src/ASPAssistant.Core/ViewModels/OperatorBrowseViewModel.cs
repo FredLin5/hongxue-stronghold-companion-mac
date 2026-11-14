@@ -249,6 +249,10 @@ public partial class OperatorBrowseViewModel : ObservableObject
             chip.Count = _allOperators.Count(o => o.AdditionalCovenants.Contains(chip.Value) && Usable(o));
             chip.Ban = _isCovenantBanned?.Invoke(chip.Value) == true ? FilterChipBan.Reduced : FilterChipBan.None;
         }
+        // Banned covenants are pushed to the end of the chip row: available ones stay in front.
+        SortBlockedLast(CoreChips);
+        SortBlockedLast(OtherChips);
+
         foreach (var chip in TraitChips)
             chip.Count = _allOperators.Count(o => MatchesSource(o) && o.Normal.Traits.Concat(o.Elite.Traits).Any(t => t.TraitType == chip.Value));
         foreach (var chip in TimingChips)
@@ -256,6 +260,15 @@ public partial class OperatorBrowseViewModel : ObservableObject
             var tag = $"<{chip.Value}>";
             chip.Count = _allOperators.Count(o => MatchesSource(o) && o.Normal.Traits.Concat(o.Elite.Traits).Any(t => t.TraitDescription.Contains(tag)));
         }
+    }
+
+    /// <summary>Stable re-order: unbanned chips keep their order, banned chips move to the end.</summary>
+    private static void SortBlockedLast(ObservableCollection<FilterChip> chips)
+    {
+        var ordered = chips.OrderBy(c => c.IsBlocked ? 1 : 0).ToList();
+        if (ordered.SequenceEqual(chips)) return;
+        chips.Clear();
+        foreach (var chip in ordered) chips.Add(chip);
     }
 
     private void OnChipToggled(FilterChip chip)
