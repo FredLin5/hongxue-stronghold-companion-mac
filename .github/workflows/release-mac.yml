@@ -1,15 +1,15 @@
-# macOS release: builds the self-contained .app bundle and attaches it to the tag's release.
-# Only the macOS port is built here; the Windows release is handled by release.yml.
+# macOS release: builds the self-contained .app bundle and publishes a macOS-only release.
+# Tags use the "mac-v" prefix so the Windows release workflow (v*) is not triggered.
 name: Release macOS
 
 on:
   push:
     tags:
-      - "v*"
+      - "mac-v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag, e.g. v1.0.0"
+        description: "Release tag, e.g. mac-v1.0.0"
         required: true
         type: string
 
@@ -41,12 +41,12 @@ jobs:
         shell: bash
         run: |
           tag="${{ github.event.inputs.tag || github.ref_name }}"
-          if [[ ! "$tag" =~ ^v[0-9]+(\.[0-9]+)*$ ]]; then
-            echo "::error::tag '$tag' must look like v1.2.3"
+          if [[ ! "$tag" =~ ^mac-v[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "::error::tag '$tag' must look like mac-v1.2.3"
             exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#mac-v}" >> "$GITHUB_OUTPUT"
 
       - name: Offline harnesses (OCR samples + PlayCover protocol)
         shell: bash
@@ -96,8 +96,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: 鸿雪·卫戍助手 ${{ steps.version.outputs.tag }}
-          body_path: RELEASE_NOTES.md
+          name: 鸿雪·卫戍助手 macOS ${{ steps.version.outputs.version }}
+          body_path: RELEASE_NOTES-mac.md
           files: |
             dist/${{ steps.package.outputs.zip }}
             dist/SHA256SUMS-macos.txt

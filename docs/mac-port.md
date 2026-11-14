@@ -207,13 +207,14 @@ Ban 位录入只影响干员页的可用性标记，不会生成阵容。
 
 `.github/workflows/release-mac.yml` 只构建 macOS 版本：
 
-1. 打一个 `v` 开头的 tag（如 `v1.0.0`）并推送，或在 Actions 里手动运行并填 tag；
+1. 打一个 `mac-v` 开头的 tag（如 `mac-v1.0.0`）并推送，或在 Actions 里手动运行并填 tag；
+   Windows 版本仍用 `v*` tag，两者互不触发；
 2. 工作流先跑两个离线测试（`tools/MacProbe` 的 6 张商店样本 + `tools/PlayToolsMock` 的协议链路），
    再用 `scripts/build-mac.sh` 打出 `.app`（版本号取自 tag，`CFBundleVersion` 用运行编号）；
 3. 校验 bundle：可执行文件、图标、`data/operators.json`、OCR 模型、三份许可文件、`Info.plist` 版本、
    `codesign --verify`，并确认 `runtimes/` 只剩 `osx-arm64`；
 4. 用 `ditto` 打包成 `HongxueStronghold-macOS-arm64-<tag>.zip`，生成 `SHA256SUMS-macos.txt`，
-   上传到该 tag 的 GitHub Release（Windows 版本由 `release.yml` 走另一个 job，两者共用同一个 Release）。
+   上传到该 tag 的 GitHub Release（macOS 独立 Release，说明取自 `RELEASE_NOTES-mac.md`）。
 
 本地等价命令：
 

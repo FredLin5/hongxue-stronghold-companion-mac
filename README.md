@@ -144,8 +144,8 @@ Core 逻辑与数据，并通过 MaaFramework 的 PlayCover 控制单元连接 [
 scripts/build-mac.sh --run
 ```
 
-推送 `v*` tag 会触发 `Release macOS` 工作流，产出 `HongxueStronghold-macOS-arm64-<tag>.zip`
-和 `SHA256SUMS-macos.txt`；Windows 版本仍由 `Release` 工作流构建，两者挂在同一个 Release 下。
+推送 `mac-v*` tag（如 `mac-v1.0.0`）会触发 `Release macOS` 工作流，产出 macOS 独立 Release：
+`HongxueStronghold-macOS-arm64-<tag>.zip` 和 `SHA256SUMS-macos.txt`；Windows 版本仍由 `v*` tag 的 `Release` 工作流构建。
 下载包未公证，首次打开需右键「打开」或 `xattr -dr com.apple.quarantine`。
 
 已支持：干员/装备浏览与筛选、追踪列表、已保存阵容（含推荐策略）、PlayCover/ADB 连接、商店名称 OCR
