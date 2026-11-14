@@ -20,6 +20,14 @@ public partial class GameInfoPage : UserControl
         _state = state;
         InitializeComponent();
         DataContext = state.GameInfo;
+        if (this.FindControl<CheckBox>("AutoDetectCheck") is { } check)
+            check.IsChecked = state.AutoDetectGameInfo;
+    }
+
+    private async void OnAutoDetectToggled(object? sender, RoutedEventArgs e)
+    {
+        var enabled = this.FindControl<CheckBox>("AutoDetectCheck")?.IsChecked == true;
+        await _state.SetAutoDetectGameInfoAsync(enabled);
     }
 
     private async void OnIdentify(object? sender, RoutedEventArgs e) => await _state.IdentifyGameInfoAsync();

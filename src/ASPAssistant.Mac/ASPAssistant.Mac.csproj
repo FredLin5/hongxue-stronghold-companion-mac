@@ -7,7 +7,7 @@
     <AssemblyName>HongxueStronghold</AssemblyName>
     <RootNamespace>ASPAssistant.Mac</RootNamespace>
     <ApplicationTitle>鸿雪·卫戍助手</ApplicationTitle>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <!-- Runs on newer shared runtimes too when only a later .NET is installed. -->

@@ -258,31 +258,42 @@ public class LineupPlannerTests
     [Fact]
     public void Plan_ExcludesOperatorsWhoseCovenantsAreBanned()
     {
-        var operators = new[] { Op("单禁", ["炎"]), Op("双禁", ["炎"], ["突袭"]), Op("可用", ["炎"], ["精准"]), Op("甲", ["炎"]), Op("乙", ["维多利亚"], ["突袭"]) };
-        var planner = new LineupPlanner(operators, [Core("炎"), Core("维多利亚"), Extra("突袭"), Extra("精准")]);
+        var operators = new[] { Op("单禁", ["炎"]), Op("双禁", ["炎"], ["突袭"]), Op("可用", ["乌萨斯"], ["精准"]), Op("甲", ["炎"]), Op("乙", ["维多利亚"], ["突袭"]) };
+        var planner = new LineupPlanner(operators, [Core("炎"), Core("乌萨斯"), Core("维多利亚"), Extra("突袭"), Extra("精准")]);
         var banned = new HashSet<string> { "炎", "突袭" };
 
         planner.IsExcludedByBans(operators[0], banned).Should().BeTrue();
         planner.IsExcludedByBans(operators[1], banned).Should().BeTrue();
         planner.IsExcludedByBans(operators[2], banned).Should().BeFalse();
+        // A banned additional covenant alone does not remove an operator that still has a core covenant.
         planner.IsExcludedByBans(operators[4], banned).Should().BeFalse();
     }
 
     [Fact]
-    public void CovenantBans_RemoveOperatorsWhoseCovenantsAreAllBanned()
+    public void CovenantBans_RemoveOperatorsByCoreCovenant()
     {
-        // 霍尔海雅: 奥术 + 精准, no core covenant.
+        // 任何一个核心盟约被 ban，干员就本局不可用。锏属于 卡西米尔 + 谢拉格 + 莱塔尼亚，
+        // ban 掉莱塔尼亚（游戏内实测）后锏同样不可用。
+        var jian = new Operator { Name = "锏", CoreCovenants = ["卡西米尔", "谢拉格", "莱塔尼亚"] };
+        CovenantBanRules.IsExcluded(jian, new HashSet<string> { "莱塔尼亚" }).Should().BeTrue();
+        CovenantBanRules.IsExcluded(jian, new HashSet<string> { "卡西米尔" }).Should().BeTrue();
+        CovenantBanRules.IsExcluded(jian, new HashSet<string> { "阿戈尔" }).Should().BeFalse();
+
+        // 两个核心盟约的干员：ban 任意一个即不可用。
+        var harold = new Operator { Name = "哈洛德", CoreCovenants = ["维多利亚", "谢拉格"] };
+        CovenantBanRules.IsExcluded(harold, new HashSet<string> { "维多利亚" }).Should().BeTrue();
+        CovenantBanRules.IsExcluded(harold, new HashSet<string> { "谢拉格" }).Should().BeTrue();
+        CovenantBanRules.IsExcluded(harold, new HashSet<string> { "乌萨斯" }).Should().BeFalse();
+
+        // 核心 + 附加都有：只看核心盟约。
+        var eyja = new Operator { Name = "纯烬艾雅法拉", CoreCovenants = ["莱塔尼亚"], AdditionalCovenants = ["聚合", "远见"] };
+        CovenantBanRules.IsExcluded(eyja, new HashSet<string> { "莱塔尼亚" }).Should().BeTrue();
+        CovenantBanRules.IsExcluded(eyja, new HashSet<string> { "聚合", "远见" }).Should().BeFalse();
+
+        // 没有核心盟约的干员（霍尔海雅：奥术 + 精准）只在附加盟约全被 ban 时退出。
         var hoederer = new Operator { Name = "霍尔海雅", AdditionalCovenants = ["奥术", "精准"] };
         CovenantBanRules.IsExcluded(hoederer, new HashSet<string> { "奥术" }).Should().BeFalse();
         CovenantBanRules.IsExcluded(hoederer, new HashSet<string> { "奥术", "精准" }).Should().BeTrue();
-        // Two core covenants (哈洛德): both banned removes him, one does not.
-        var harold = new Operator { Name = "哈洛德", CoreCovenants = ["维多利亚", "谢拉格"] };
-        CovenantBanRules.IsExcluded(harold, new HashSet<string> { "维多利亚" }).Should().BeFalse();
-        CovenantBanRules.IsExcluded(harold, new HashSet<string> { "维多利亚", "谢拉格" }).Should().BeTrue();
-        // Three covenants: one left unbanned keeps the operator.
-        var eyja = new Operator { Name = "纯烬艾雅法拉", CoreCovenants = ["莱塔尼亚"], AdditionalCovenants = ["聚合", "远见"] };
-        CovenantBanRules.IsExcluded(eyja, new HashSet<string> { "莱塔尼亚", "聚合" }).Should().BeFalse();
-        CovenantBanRules.IsExcluded(eyja, new HashSet<string> { "莱塔尼亚", "聚合", "远见" }).Should().BeTrue();
     }
 
     [Fact]

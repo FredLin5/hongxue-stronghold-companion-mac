@@ -240,11 +240,13 @@ public sealed class GameConnectionService : IDisposable
         lock (_captureLock)
         {
             if (_disposed) return false;
+            // Small step (~6% of the height, about one row) so the panel is not scrolled past
+            // rows that still need reading; the analyzer re-reads after every step.
             int x = (int)(_screenWidth * .35);
-            int y1 = (int)(_screenHeight * .72);
+            int y1 = (int)(_screenHeight * .70);
             int y2 = (int)(_screenHeight * .64);
             var controller = (MaaController?)_adbController ?? _playCoverController;
-            return controller is not null && controller.Swipe(x, y1, x, y2, 200).Wait() == MaaJobStatus.Succeeded;
+            return controller is not null && controller.Swipe(x, y1, x, y2, 300).Wait() == MaaJobStatus.Succeeded;
         }
     }
 

@@ -13,6 +13,8 @@
                                 IsEnabled="{Binding !IsBusy}" />
                         <Button Content="清空" Classes="ghost" Click="OnClear" />
                     </StackPanel>
+                    <CheckBox x:Name="AutoDetectCheck" Content="打开本局信息页时自动识别" FontSize="10"
+                              Click="OnAutoDetectToggled" />
                     <TextBlock Text="{Binding Status}" FontSize="10" TextWrapping="Wrap"
                                Foreground="{DynamicResource TextSecondary}" />
                 </StackPanel>

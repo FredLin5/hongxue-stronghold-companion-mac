@@ -70,7 +70,13 @@ if (swipeIndex >= 0 && args.Length > swipeIndex + 4)
 
 var dataDir = Path.Combine(root, "data");
 
-if (args.Contains("--ban"))
+var banFileIndex = Array.IndexOf(args, "--ban-file");
+if (banFileIndex >= 0 && args.Length > banFileIndex + 1)
+{
+    frame = File.ReadAllBytes(args[banFileIndex + 1]);
+}
+
+if (args.Contains("--ban") || banFileIndex >= 0)
 {
     var store2 = new ASPAssistant.Core.Data.JsonDataStore(dataDir);
     var ops = await store2.LoadOperatorsAsync();

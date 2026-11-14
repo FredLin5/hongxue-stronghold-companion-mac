@@ -177,7 +177,8 @@ public sealed class AppState : IDisposable
         {
             var scrolled = await Task.Run(() => state.Connection.ScrollInformationPanelDown());
             if (!scrolled) return null;
-            await Task.Delay(250);
+            // Let the panel settle: a short step plus a longer pause keeps rows from being skipped.
+            await Task.Delay(400);
             return await Task.Run(() => state.Capture.CaptureScreen());
         };
         analyzer.AnalysisBusyChanged += busy => Dispatcher.UIThread.Post(() =>
@@ -204,6 +205,20 @@ public sealed class AppState : IDisposable
         analyzer.AnalysisFailed += message => Dispatcher.UIThread.Post(() => state.GameInfo.Fail(message));
         analyzer.EnemyDetected += enemy => Dispatcher.UIThread.Post(() => state.GameInfo.SetEnemy(enemy));
         state.Analyzer = analyzer;
+
+        // Auto-detection: while the shop scan finds nothing, check whether the info page is open
+        // (both covenant headers visible). The frame hash keeps one page from being analysed twice.
+        var informationDetector = new InformationScreenDetector(ocr, mode.OcrStrategy);
+        state.AutoDetectGameInfo = await settings.LoadAutoDetectGameInfoAsync();
+        scanner.NoShopFrameAsync = async (frame, width, height) =>
+        {
+            if (!state.AutoDetectGameInfo) return;
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(frame));
+            if (hash == state._lastInfoHash) return;
+            if (!await informationDetector.IsInformationScreenAsync(frame, width, height)) return;
+            state._lastInfoHash = hash;
+            await state.IdentifyGameInfoAsync();
+        };
         scanner.ThemeDetected += theme =>
         {
             reader.Theme = theme;
@@ -228,6 +243,11 @@ public sealed class AppState : IDisposable
     /// <summary>Raised after bans changed, so the operator page can rebuild its rows.</summary>
     public event Action? BanListChanged;
 
+    /// <summary>Recognise the in-game info page automatically when it appears (default on).</summary>
+    public bool AutoDetectGameInfo { get; set; } = true;
+
+    private string? _lastInfoHash;
+
     public async Task IdentifyGameInfoAsync()
     {
         if (Analyzer is null) return;
@@ -241,6 +261,16 @@ public sealed class AppState : IDisposable
     }
 
     /// <summary>Changes the shop theme used by the recogniser and persists it.</summary>
+    public async Task SetAutoDetectGameInfoAsync(bool enabled)
+    {
+        AutoDetectGameInfo = enabled;
+        try { await Settings.SaveAutoDetectGameInfoAsync(enabled); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            AppLogger.Warn("Mac", $"Could not save auto-detect setting: {ex.Message}");
+        }
+    }
+
     public async Task SetShopThemeAsync(GameShopTheme theme)
     {
         ShopTheme = theme;

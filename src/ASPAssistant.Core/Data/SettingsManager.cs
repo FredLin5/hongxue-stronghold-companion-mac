@@ -203,6 +203,28 @@ public class SettingsManager
         }
     }
 
+    /// <summary>自动识别游戏内本局信息页（macOS 版使用）。</summary>
+    public async Task<bool> LoadAutoDetectGameInfoAsync()
+    {
+        try
+        {
+            var json = await File.ReadAllTextAsync(Path.Combine(_settingsDir, "auto-game-info.json"));
+            return JsonSerializer.Deserialize<bool>(json);
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return true;
+        }
+    }
+
+    public async Task SaveAutoDetectGameInfoAsync(bool enabled)
+    {
+        Directory.CreateDirectory(_settingsDir);
+        var path = Path.Combine(_settingsDir, "auto-game-info.json");
+        await File.WriteAllTextAsync(path + ".tmp", JsonSerializer.Serialize(enabled));
+        File.Move(path + ".tmp", path, overwrite: true);
+    }
+
     public async Task<bool> LoadAutomaticGameThemeAsync()
     {
         try

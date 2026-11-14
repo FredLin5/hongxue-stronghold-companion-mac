@@ -42,6 +42,12 @@ public sealed class ShopScanService : IDisposable
     /// </summary>
     public bool AutomaticThemeDetection { get; set; }
 
+    /// <summary>
+    /// Called with the captured frame when a scan finds no shop items (the game is not on the
+    /// shop screen). Used for the "本局信息页 opened" auto-detection.
+    /// </summary>
+    public Func<byte[], int, int, Task>? NoShopFrameAsync { get; set; }
+
     public ShopScanResult? Last { get; private set; }
     public bool IsRunning => _timer.Enabled;
 
@@ -95,6 +101,12 @@ public sealed class ShopScanService : IDisposable
             var result = new ShopScanResult(DateTime.Now, items, theme, null, frame, width, height);
             Publish(result);
             ItemsRecognized?.Invoke(items);
+
+            if (items.Count == 0 && NoShopFrameAsync is { } onNoShop)
+            {
+                try { await onNoShop(frame, width, height); }
+                catch (Exception ex) { AppLogger.Warn("MacScan", $"No-shop hook failed: {ex.Message}"); }
+            }
             return result;
         }
         catch (Exception ex)

@@ -1,4 +1,4 @@
-// Modified for ASP Assistant Arknights on 2026-11-11; see NOTICE.
+// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
 using ASPAssistant.Core.Models;
 
 namespace ASPAssistant.Core.Services;
@@ -10,8 +10,11 @@ namespace ASPAssistant.Core.Services;
 public static class CovenantBanRules
 {
     /// <summary>
-    /// An operator is unavailable only when every one of its covenants is banned: a single-covenant operator whose
-    /// covenant is banned, 霍尔海雅 with 精准 + 奥术 both banned, 纯烬艾雅法拉 only with 莱塔尼亚 + 聚合 + 远见 all banned.
+    /// 核心盟约是干员的阵营：只要有一个核心盟约被 ban，这个干员本局就不可用。
+    /// 例如锏同时属于卡西米尔 / 谢拉格 / 莱塔尼亚，ban 掉莱塔尼亚后锏同样被禁用（游戏内实测）。
+    ///
+    /// 没有核心盟约的干员（数据里有 49 个，例如霍尔海雅只有奥术 + 精准）没有阵营兜底，
+    /// 只有全部附加盟约都被 ban 时才会退出池子。
     /// </summary>
     public static bool IsExcluded(Operator op, IReadOnlySet<string> bannedCovenants)
         => IsExcluded(op.CoreCovenants, op.AdditionalCovenants, bannedCovenants);
@@ -19,7 +22,12 @@ public static class CovenantBanRules
     public static bool IsExcluded(IEnumerable<string> core, IEnumerable<string> additional, IReadOnlySet<string> bannedCovenants)
     {
         if (bannedCovenants.Count == 0) return false;
-        var all = core.Concat(additional).Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
-        return all.Count > 0 && all.All(bannedCovenants.Contains);
+
+        var coreList = core.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+        if (coreList.Count > 0)
+            return coreList.Any(bannedCovenants.Contains);
+
+        var additionalList = additional.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+        return additionalList.Count > 0 && additionalList.All(bannedCovenants.Contains);
     }
 }
