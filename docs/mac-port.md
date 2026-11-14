@@ -4,6 +4,16 @@
 Windows 版本保持原样可用：`src/ASPAssistant.App` 仍按 `net8.0-windows` 构建，本次改动只在共享的 `ASPAssistant.Core`
 中加入了平台分支。
 
+## 界面截图
+
+以下截图由 macOS 版直接渲染（深色 Terminal 主题）：
+
+<p align="center">
+  <img src="images/mac/operators.png" width="240" alt="macOS 干员浏览" />
+  <img src="images/mac/tracking.png" width="240" alt="macOS 追踪与在售标记" />
+  <img src="images/mac/settings.png" width="240" alt="macOS 连接设置" />
+</p>
+
 ## 现在能做什么
 
 | 功能 | macOS 状态 |
