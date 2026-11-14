@@ -299,16 +299,18 @@ public sealed class BanScreenAnalyzer
             .Select(c => c.Name)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToHashSet(StringComparer.Ordinal);
-        var bannedAdditionalCovenants = result.AdditionalCovenants
-            .Where(c => c.IsBanned)
+        var bannedAdditional = result.AdditionalCovenants
+            .Where(c => c.IsBanned && !string.IsNullOrWhiteSpace(c.Name))
+            .ToList();
+        var bannedAdditionalNames = bannedAdditional.Select(c => c.Name).ToHashSet(StringComparer.Ordinal);
+
+        // Covenants drawn this run: the info panel lists them all, banned or not. A covenant that is
+        // not drawn cannot be used either, and the game does not create a ban group for it.
+        var drawnCoreCovenants = result.CoreCovenants
             .Select(c => c.Name)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToHashSet(StringComparer.Ordinal);
-
-        // Covenants drawn this run (the panel lists them all, banned or not). An operator that has
-        // no drawn core covenant is simply not in the shop; if one of its additional covenants is
-        // banned it cannot be used at all, and the game lists it under that additional covenant.
-        var drawnCoreCovenants = result.CoreCovenants
+        var drawnAdditionalCovenants = result.AdditionalCovenants
             .Select(c => c.Name)
             .Where(c => !string.IsNullOrWhiteSpace(c))
             .ToHashSet(StringComparer.Ordinal);
@@ -339,25 +341,30 @@ public sealed class BanScreenAnalyzer
             var core = op.CoreCovenants.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
             var additional = op.AdditionalCovenants.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
 
-            // The game assigns one primary core covenant; that covenant being banned removes the operator.
+            var excluded = false;
             var primary = CovenantBanRules.PrimaryCore(core, op.Name);
-            if (primary is not null && bannedCoreCovenants.Contains(primary))
+            if (primary is not null)
             {
-                AddToGroup(primary, op.Name);
-                // The in-game list also shows the operator under a banned additional covenant it holds.
-                foreach (var covenant in result.AdditionalCovenants)
-                    if (covenant.IsBanned && additional.Contains(covenant.Name))
-                        AddToGroup(covenant.Name, op.Name);
-                continue;
+                // The game assigns one primary core covenant; only a ban removes the operator from
+                // the shop *and* lists it. A covenant that was not drawn simply has no shop entry.
+                if (bannedCoreCovenants.Contains(primary))
+                {
+                    AddToGroup(primary, op.Name);
+                    excluded = true;
+                }
+            }
+            else if (additional.Count > 0
+                && !additional.Any(c => drawnAdditionalCovenants.Contains(c) && !bannedAdditionalNames.Contains(c)))
+            {
+                // No core covenant: the operator can only be used through an additional covenant.
+                excluded = true;
             }
 
-            // Operators without a usable core covenant (none drawn, or their covenant is banned) are
-            // ruled out by a banned additional covenant instead.
-            var hasUsableCore = primary is not null
-                && drawnCoreCovenants.Contains(primary) && !bannedCoreCovenants.Contains(primary);
-            if (hasUsableCore) continue;
-            foreach (var covenant in result.AdditionalCovenants)
-                if (covenant.IsBanned && additional.Contains(covenant.Name))
+            if (!excluded) continue;
+
+            // The in-game list also shows the operator under every banned additional covenant it holds.
+            foreach (var covenant in bannedAdditional)
+                if (additional.Contains(covenant.Name))
                     AddToGroup(covenant.Name, op.Name);
         }
 
