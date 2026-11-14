@@ -1,0 +1,622 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:ASPAssistant.Mac"
+             x:Class="ASPAssistant.Mac.Views.PlannerPage">
+    <UserControl.Resources>
+        <conv:IconPathConverter x:Key="Icon" />
+        <conv:CountToVisibilityConverter x:Key="HasCount" />
+        <conv:TierRomanConverter x:Key="Tier" />
+
+        <!-- One 目标盟约 tile: name, how many holders are left, Ⅰ / Ⅱ level buttons -->
+        <DataTemplate x:Key="CovenantTile">
+            <Border Classes="tile" Classes.selected="{Binding IsSelected}" Classes.banned="{Binding IsBanned}"
+                    Classes.blocked="{Binding IsBlocked}" IsVisible="{Binding IsVisible}"
+                    Width="166" Margin="0,0,5,5"
+                    PointerEntered="OnDetailEnter" PointerExited="OnDetailLeave">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                    <Border Width="6" Height="6" CornerRadius="3" Margin="0,0,5,0" VerticalAlignment="Center"
+                            Background="{DynamicResource Accent}" IsVisible="{Binding IsAvailable}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,3,0">
+                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold"
+                                   Classes="tiletext" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding TileSubText}" FontSize="9" Classes="tiletext"
+                                   Foreground="{DynamicResource TextMuted}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="lvl" Classes.on="{Binding IsLevel1}" Content="Ⅰ"
+                            Command="{Binding ToggleLevel1Command}" IsEnabled="{Binding IsEnabled}" />
+                    <Button Grid.Column="3" Classes="lvl" Classes.on="{Binding IsLevel2}" Content="{Binding SecondLabel}"
+                            Command="{Binding ToggleLevel2Command}" IsEnabled="{Binding CanPlanSecond}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- ── 悬停详情 ─────────────────────────────────────────────────── -->
+
+        <!-- A covenant chip in the operator details (「乌萨斯」「精准」…) -->
+        <DataTemplate x:Key="CovenantChip">
+            <Border Background="{DynamicResource AccentTint}" CornerRadius="7" Padding="5,1" Margin="0,0,4,4">
+                <TextBlock Text="{Binding}" FontSize="9" />
+            </Border>
+        </DataTemplate>
+
+        <!-- One trait row of a variant (普通 / 精锐) -->
+        <DataTemplate x:Key="TraitRow">
+            <StackPanel Spacing="1" Margin="0,0,0,5">
+                <TextBlock Text="{Binding TraitType}" FontSize="9" Foreground="{DynamicResource TextMuted}"
+                           TextWrapping="Wrap" />
+                <TextBlock Text="{Binding TraitDescription}" FontSize="10" LineHeight="15" TextWrapping="Wrap" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- The skill a variant brings (name, SP cost, description) -->
+        <DataTemplate x:Key="SkillBlock">
+            <StackPanel Spacing="2" IsVisible="{Binding HasSkill}" Margin="0,1,0,0">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Skill.CostText}" FontSize="9"
+                               VerticalAlignment="Center" Foreground="{DynamicResource TextMuted}" />
+                    <TextBlock FontSize="9" Foreground="{DynamicResource TextSecondary}">
+                        <Run Text="技能 · " /><Run Text="{Binding Skill.Name}" FontWeight="Bold" />
+                    </TextBlock>
+                </DockPanel>
+                <TextBlock Text="{Binding Skill.Description}" FontSize="10" LineHeight="15" TextWrapping="Wrap"
+                           Foreground="{DynamicResource TextSecondary}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- An operator holding a covenant; unavailable ones are dimmed and struck through -->
+        <DataTemplate x:Key="CovenantMemberChip">
+            <StackPanel Width="38" Margin="0,0,2,4" Classes.unavailable="{Binding IsUnavailable}">
+                <Border Width="26" Height="26" CornerRadius="6" ClipToBounds="True" HorizontalAlignment="Center"
+                        Background="{DynamicResource SectionBackground}">
+                    <Image Width="26" Height="26" Stretch="UniformToFill"
+                           Source="{Binding IconPath, Converter={StaticResource Icon}}" />
+                </Border>
+                <TextBlock Text="{Binding Name}" FontSize="8" TextAlignment="Center" TextTrimming="CharacterEllipsis"
+                           Margin="0,1,0,0" />
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- Covenant hover card: requirements, effects, ban note and every holder -->
+        <DataTemplate x:Key="CovenantDetails">
+            <Border Width="300" Background="{DynamicResource SurfaceBackground}" Padding="11" CornerRadius="10"
+                    BorderBrush="{DynamicResource StrongBorder}" BorderThickness="1">
+                <StackPanel Spacing="6">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Right" Background="{DynamicResource ChipBackground}" CornerRadius="7"
+                                Padding="6,1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding TypeText}" FontSize="9"
+                                       Foreground="{DynamicResource TextSecondary}" />
+                        </Border>
+                        <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <WrapPanel>
+                        <Border Classes="tag green" IsVisible="{Binding IsAvailable}">
+                            <TextBlock Text="本局可用" FontSize="9" />
+                        </Border>
+                        <Border Classes="tag red" IsVisible="{Binding IsBanned}">
+                            <TextBlock Text="本局被 Ban" FontSize="9" />
+                        </Border>
+                        <Border Classes="tag" IsVisible="{Binding CanTransformInto}"
+                                Background="{DynamicResource EliteTint}">
+                            <TextBlock Text="可作为转职目标" FontSize="9" Foreground="{DynamicResource Elite}" />
+                        </Border>
+                    </WrapPanel>
+
+                    <Grid ColumnDefinitions="20,*" RowDefinitions="Auto,Auto">
+                        <Border Grid.Row="0" Background="{DynamicResource AccentTint}" CornerRadius="5" Height="17"
+                                Width="20" VerticalAlignment="Top" Margin="0,0,0,3">
+                            <TextBlock Text="Ⅰ" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding FirstRequirement}" FontSize="11"
+                                   Margin="0,0,0,3" />
+                        <Border Grid.Row="1" Background="{DynamicResource EliteTint}" CornerRadius="5" Height="17"
+                                Width="20" VerticalAlignment="Top">
+                            <TextBlock Text="Ⅱ" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" Foreground="{DynamicResource Elite}" />
+                        </Border>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SecondRequirement}" FontSize="11"
+                                   TextWrapping="Wrap" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding Effects}" IsVisible="{Binding HasEffects}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Spacing="1" Margin="0,0,0,4">
+                                    <Border Background="{DynamicResource EliteTint}" CornerRadius="6" Padding="5,1"
+                                            HorizontalAlignment="Left" IsVisible="{Binding HasCondition}">
+                                        <TextBlock Text="{Binding Condition}" FontSize="9"
+                                                   Foreground="{DynamicResource Elite}" TextWrapping="Wrap" />
+                                    </Border>
+                                    <TextBlock Text="{Binding Text}" FontSize="10" LineHeight="15" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{Binding BanNote}" IsVisible="{Binding HasBanNote}" FontSize="10"
+                               TextWrapping="Wrap" Foreground="{DynamicResource Danger}" />
+
+                    <Border Height="1" Background="{DynamicResource SoftBorder}" />
+                    <TextBlock Text="{Binding MemberSummary}" FontSize="9" Foreground="{DynamicResource TextSecondary}" />
+                    <ItemsControl ItemsSource="{Binding Members}" ItemTemplate="{StaticResource CovenantMemberChip}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- Operator hover card: planner note, class, covenants and the 普通 / 精锐 variants -->
+        <DataTemplate x:Key="OperatorDetails">
+            <Border Width="300" Background="{DynamicResource SurfaceBackground}" Padding="11" CornerRadius="10"
+                    BorderBrush="{DynamicResource StrongBorder}" BorderThickness="1">
+                <StackPanel Spacing="6">
+                    <Border Background="{DynamicResource EliteTint}" BorderBrush="{DynamicResource Elite}"
+                            BorderThickness="1" CornerRadius="7" Padding="7,4" IsVisible="{Binding HasExtraInfo}">
+                        <TextBlock Text="{Binding ExtraInfo}" FontSize="10" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource Elite}" />
+                    </Border>
+
+                    <DockPanel>
+                        <Border DockPanel.Dock="Left" Width="46" Height="46" CornerRadius="8" ClipToBounds="True"
+                                Background="{DynamicResource SectionBackground}" Margin="0,0,9,0">
+                            <Image Width="46" Height="46" Stretch="UniformToFill"
+                                   Source="{Binding IconPath, Converter={StaticResource Icon}}" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" />
+                                <Border Background="{DynamicResource EliteTint}" CornerRadius="5" Padding="4,0"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Operator.Tier, Converter={StaticResource Tier}}"
+                                               FontSize="9" Foreground="{DynamicResource Elite}" />
+                                </Border>
+                                <Border Background="{DynamicResource ChipBackground}" CornerRadius="5" Padding="4,0"
+                                        VerticalAlignment="Center" IsVisible="{Binding Operator.IsCustom}">
+                                    <TextBlock Text="自选" FontSize="9" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding Operator.Profile.ClassText}" FontSize="9" Margin="0,3,0,0"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}" />
+                            <TextBlock Text="{Binding Operator.Profile.RoleText}" FontSize="9" Margin="0,2,0,0"
+                                       TextWrapping="Wrap" Foreground="{DynamicResource Accent}" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <WrapPanel>
+                        <ItemsControl ItemsSource="{Binding Operator.CoreCovenants}"
+                                      ItemTemplate="{StaticResource CovenantChip}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Operator.AdditionalCovenants}"
+                                      ItemTemplate="{StaticResource CovenantChip}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </WrapPanel>
+
+                    <Border Height="1" Background="{DynamicResource SoftBorder}" />
+
+                    <TextBlock Text="普通" FontSize="9" Foreground="{DynamicResource TextMuted}" />
+                    <ItemsControl ItemsSource="{Binding Operator.Normal.Traits}"
+                                  ItemTemplate="{StaticResource TraitRow}" />
+                    <ContentControl Content="{Binding Operator.Normal}"
+                                    ContentTemplate="{StaticResource SkillBlock}" />
+
+                    <TextBlock Text="精锐" FontSize="9" Foreground="{DynamicResource Elite}" Margin="0,3,0,0" />
+                    <ItemsControl ItemsSource="{Binding Operator.Elite.Traits}"
+                                  ItemTemplate="{StaticResource TraitRow}" />
+                    <ContentControl Content="{Binding Operator.Elite}"
+                                    ContentTemplate="{StaticResource SkillBlock}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!-- 目标 / 结果 segmented switch -->
+        <Style Selector="Button.seg">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="CornerRadius" Value="7" />
+        </Style>
+        <Style Selector="Button.seg.active">
+            <Setter Property="Background" Value="{DynamicResource SectionBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!-- Covenant tile -->
+        <Style Selector="Border.tile">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="7,4" />
+        </Style>
+        <Style Selector="Border.tile.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}" />
+            <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+        </Style>
+        <Style Selector="Border.tile.banned">
+            <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+        </Style>
+        <Style Selector="Border.tile.banned TextBlock.tiletext">
+            <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+        </Style>
+        <Style Selector="Border.tile.blocked">
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+
+        <!-- Ⅰ / Ⅱ level buttons -->
+        <Style Selector="Button.lvl">
+            <Setter Property="Width" Value="22" />
+            <Setter Property="Height" Value="22" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="3,0,0,0" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{DynamicResource SectionBackground}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.lvl.on">
+            <Setter Property="Background" Value="{DynamicResource AccentStrong}" />
+            <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
+        </Style>
+
+        <!-- Strategy chips (Buttons, not ToggleButtons: the VM owns the single selection) -->
+        <Style Selector="Button.stratchip">
+            <Setter Property="Background" Value="{DynamicResource ChipBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="9,3" />
+            <Setter Property="Margin" Value="0,0,6,6" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        </Style>
+        <Style Selector="Button.stratchip.active">
+            <Setter Property="Background" Value="{DynamicResource ChipSelectedBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource ChipSelectedBorder}" />
+            <Setter Property="Foreground" Value="{DynamicResource ChipSelectedText}" />
+        </Style>
+
+        <!-- 人数 × 转职 cell -->
+        <Style Selector="Button.cell">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.cell.on">
+            <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}" />
+        </Style>
+        <Style Selector="Button.cell.empty">
+            <Setter Property="Opacity" Value="0.45" />
+        </Style>
+
+        <!-- Operator avatar frame on a candidate card -->
+        <Style Selector="Border.avatar">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="ClipToBounds" Value="True" />
+            <Setter Property="Background" Value="{DynamicResource SectionBackground}" />
+        </Style>
+        <Style Selector="Border.avatar.transformed">
+            <Setter Property="BorderBrush" Value="{DynamicResource Elite}" />
+        </Style>
+        <Style Selector="Border.avatar.locked">
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentStrong}" />
+        </Style>
+        <Style Selector="Border.avatar.free">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Opacity" Value="0.6" />
+        </Style>
+
+        <!-- Covenant member in the hover card: unavailable (banned / excluded) operators are dimmed -->
+        <Style Selector="StackPanel.unavailable">
+            <Setter Property="Opacity" Value="0.35" />
+        </Style>
+        <Style Selector="StackPanel.unavailable TextBlock">
+            <Setter Property="TextDecorations" Value="Strikethrough" />
+        </Style>
+
+        <!-- Activated covenant pill; goal covenants are tinted -->
+        <Style Selector="Border.goalpill">
+            <Setter Property="Background" Value="{DynamicResource SuccessTint}" />
+        </Style>
+        <Style Selector="Border.goalpill TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Success}" />
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel PointerPressed="OnPagePointerPressed" PointerWheelChanged="OnPagePointerWheel">
+        <!-- 目标 / 结果 -->
+        <Border DockPanel.Dock="Top" Classes="card" Padding="3" Margin="2,2,2,6">
+            <Grid ColumnDefinitions="*,*">
+                <Button Grid.Column="0" Classes="seg" Classes.active="{Binding !ShowResults}"
+                        Command="{Binding ShowGoalPageCommand}">
+                    <TextBlock Text="{Binding GoalTabText}" FontSize="11" />
+                </Button>
+                <Button Grid.Column="1" Classes="seg" Classes.active="{Binding ShowResults}"
+                        Command="{Binding ShowResultPageCommand}">
+                    <TextBlock Text="{Binding ResultTabText}" FontSize="11" />
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- ── 目标 ─────────────────────────────────────────────────────── -->
+        <ScrollViewer IsVisible="{Binding !ShowResults}">
+            <StackPanel Spacing="8" Margin="2,0,2,10">
+                <Border Classes="card" Padding="10,8">
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="本局策略" FontSize="12" FontWeight="SemiBold" />
+                        <WrapPanel x:Name="StrategyRow" />
+                        <TextBlock Text="{Binding StrategyHint}" FontSize="9" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextMuted}" />
+                        <CheckBox x:Name="MechEliteCheck" Content="暴躁铁皮已精锐（可转 5 个盟约）" FontSize="10"
+                                  IsVisible="{Binding IsMechStrategy}" Click="OnMechEliteToggled" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" Padding="10,8">
+                    <StackPanel Spacing="5">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="清空"
+                                    Command="{Binding ClearGoalsCommand}" />
+                            <TextBlock Text="目标盟约" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <TextBlock FontSize="9" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}"
+                                   Text="点 Ⅰ / Ⅱ 选档位，再点一次取消。Ⅱ 级只保证人数，叠层、精锐等额外条件需自行确认。" />
+                        <TextBlock Text="核心" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                        <ItemsControl ItemsSource="{Binding CoreCovenants}" ItemTemplate="{StaticResource CovenantTile}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBlock Text="附加" FontSize="10" Foreground="{DynamicResource TextMuted}" />
+                        <ItemsControl ItemsSource="{Binding ExtraCovenants}" ItemTemplate="{StaticResource CovenantTile}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <StackPanel Spacing="4" IsVisible="{Binding HasGoals}">
+                            <TextBlock Text="已选目标" FontSize="9" Foreground="{DynamicResource TextMuted}" />
+                            <ItemsControl ItemsSource="{Binding GoalChips}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Classes="tag green">
+                                            <TextBlock Text="{Binding}" FontSize="10" />
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" Padding="10,8">
+                    <StackPanel Spacing="6">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Classes="ghost" Content="清空"
+                                    Command="{Binding ClearLockedCommand}" />
+                            <TextBlock Text="必带干员" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <TextBox x:Name="LockBox" Watermark="输入干员名称，回车固定"
+                                 Text="{Binding LockSearchText, Mode=TwoWay}" KeyDown="OnLockKeyDown" />
+                        <ItemsControl ItemsSource="{Binding LockSuggestions}"
+                                      IsVisible="{Binding LockSuggestions.Count, Converter={StaticResource HasCount}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="stratchip" Content="{Binding Name}" Click="OnPickLock" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding LockedOperators}" IsVisible="{Binding HasLocked}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Classes="tag">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <Border Width="16" Height="16" CornerRadius="4" ClipToBounds="True"
+                                                    Background="{DynamicResource SectionBackground}">
+                                                <Image Width="16" Height="16" Stretch="UniformToFill"
+                                                       Source="{Binding IconPath, Converter={StaticResource Icon}}" />
+                                            </Border>
+                                            <TextBlock Text="{Binding Name}" FontSize="10" VerticalAlignment="Center" />
+                                            <Button Classes="ghost" Content="×" Padding="2,0" FontSize="10"
+                                                    VerticalAlignment="Center" Command="{Binding RemoveCommand}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Classes="ghost" Content="从追踪导入" HorizontalAlignment="Left"
+                                Command="{Binding ImportTrackedCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card" Padding="10,8">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{Binding RunInfoText}" FontSize="9" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextMuted}" />
+                        <CheckBox x:Name="OnlyRunCheck" Content="只看本局可用盟约" FontSize="10"
+                                  IsEnabled="{Binding HasRunInfo}" Click="OnOnlyRunToggled" />
+                    </StackPanel>
+                </Border>
+
+                <Button Classes="primary" Content="{Binding ViewResultsText}" HorizontalAlignment="Stretch"
+                        Command="{Binding ShowResultPageCommand}" IsEnabled="{Binding HasGoals}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ── 结果 ─────────────────────────────────────────────────────── -->
+        <ScrollViewer IsVisible="{Binding ShowResults}">
+            <StackPanel Spacing="8" Margin="2,0,2,10">
+                <Border Classes="card" Padding="10,8">
+                    <StackPanel Spacing="6">
+                        <DockPanel>
+                            <ProgressBar DockPanel.Dock="Right" Width="56" IsIndeterminate="True"
+                                         VerticalAlignment="Center" IsVisible="{Binding IsBusy}" />
+                            <TextBlock Text="{Binding StatusText}" FontSize="11" FontWeight="SemiBold"
+                                       TextWrapping="Wrap" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding StatusDetail}" FontSize="9" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextMuted}" />
+                        <ItemsControl ItemsSource="{Binding VariantCells}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Classes="cell" Classes.on="{Binding IsSelected}"
+                                            Classes.empty="{Binding !HasResults}" Margin="0,0,6,6"
+                                            ToolTip.Tip="{Binding ToolTip}" Click="OnSelectVariant">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock FontSize="10" Foreground="{DynamicResource TextMuted}">
+                                                <Run Text="{Binding People}" /><Run Text=" 人 · " /><Run
+                                                    Text="{Binding Transforms}" /><Run Text=" 转" />
+                                            </TextBlock>
+                                            <StackPanel Orientation="Horizontal" Spacing="3">
+                                                <TextBlock Text="{Binding Text}" FontSize="16" FontWeight="Bold"
+                                                           Classes="number" />
+                                                <TextBlock Text="{Binding SubText}" FontSize="9"
+                                                           VerticalAlignment="Bottom" Margin="0,0,0,3"
+                                                           Foreground="{DynamicResource TextSecondary}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{Binding EmptyResultText}" IsVisible="{Binding !HasVisibleLineups}"
+                           FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}"
+                           Margin="2,2,2,0" />
+
+                <ItemsControl ItemsSource="{Binding VisibleLineups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Padding="9" Margin="0,0,0,8">
+                                <StackPanel Spacing="6">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="2">
+                                            <Button Classes="ghost" Content="保存" Click="OnSaveLineup" />
+                                            <Button Classes="ghost" Content="追踪" Click="OnTrackLineup" />
+                                        </StackPanel>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Subtitle}" FontSize="9" TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource TextMuted}" />
+                                        </StackPanel>
+                                    </DockPanel>
+
+                                    <Border Classes="card" Padding="7,4" IsVisible="{Binding HasStrategyPiece}"
+                                            Background="{DynamicResource EliteTint}"
+                                            BorderBrush="{DynamicResource Elite}">
+                                        <StackPanel Orientation="Horizontal" Spacing="7">
+                                            <Border Width="20" Height="20" CornerRadius="5" ClipToBounds="True"
+                                                    VerticalAlignment="Center"
+                                                    Background="{DynamicResource SectionBackground}">
+                                                <Image Width="20" Height="20" Stretch="UniformToFill"
+                                                       Source="{Binding StrategyPiece.IconPath, Converter={StaticResource Icon}}" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding StrategyPiece.Name}" FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource Elite}" />
+                                                <TextBlock Text="{Binding StrategyPiece.Sub}" FontSize="9"
+                                                           Foreground="{DynamicResource Elite}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <ItemsControl ItemsSource="{Binding Goals}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="tag" Classes.goalpill="{Binding IsGoal}">
+                                                    <TextBlock Text="{Binding Text}" FontSize="9" />
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ItemsControl ItemsSource="{Binding Operators}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><UniformGrid Columns="2" /></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Margin="0,0,6,5" Background="Transparent"
+                                                           PointerEntered="OnDetailEnter" PointerExited="OnDetailLeave">
+                                                    <Border DockPanel.Dock="Left" Classes="avatar"
+                                                            Classes.transformed="{Binding IsTransformed}"
+                                                            Classes.locked="{Binding IsLocked}"
+                                                            Classes.free="{Binding IsFree}"
+                                                            Width="24" Height="24" Margin="0,0,6,0">
+                                                        <Image Width="24" Height="24" Stretch="UniformToFill"
+                                                               Source="{Binding IconPath, Converter={StaticResource Icon}}" />
+                                                    </Border>
+                                                    <StackPanel VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}" FontSize="10" FontWeight="SemiBold"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{Binding Sub}" FontSize="9"
+                                                                   Foreground="{DynamicResource TextMuted}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <TextBlock Text="{Binding Note}" IsVisible="{Binding HasNote}" FontSize="9"
+                                               TextWrapping="Wrap" Foreground="{DynamicResource Warning}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock FontSize="9" TextWrapping="Wrap" Foreground="{DynamicResource TextMuted}"
+                           Text="候选按附加盟约得分排序；未找到候选不代表已证明无解，可减少目标或增加转职次数再试。" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 悬停详情：目标盟约 / 干员共用这一个弹层，贴在面板右缘、纵向跟随被悬停的控件 -->
+        <Border x:Name="DetailAnchor" Width="1" Height="1" HorizontalAlignment="Right" VerticalAlignment="Top"
+                Background="Transparent" IsHitTestVisible="False" />
+        <Popup x:Name="DetailPopup" Placement="Right" HorizontalOffset="8" VerticalOffset="-6"
+               IsLightDismissEnabled="False">
+            <ContentPresenter x:Name="DetailHost" IsHitTestVisible="False" />
+        </Popup>
+    </DockPanel>
+</UserControl>

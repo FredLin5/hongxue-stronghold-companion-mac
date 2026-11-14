@@ -35,6 +35,10 @@ public sealed class AppState : IDisposable
     public required BanViewModel BanVm { get; init; }
     public required GameInfoViewModel GameInfo { get; init; }
 
+    /// <summary>阵容规划：目标盟约 × 8/9 人 × 0/1/2 次转职的候选搜索（与 Windows 端同一个 Core 实现）。</summary>
+    public required LineupPlanner Planner { get; init; }
+    public required LineupPlannerViewModel PlannerVm { get; init; }
+
     /// <summary>Reads the in-game info page (magnifier menu) into bans and enemy data.</summary>
     public BanScreenAnalyzer? Analyzer { get; private set; }
 
@@ -54,6 +58,15 @@ public sealed class AppState : IDisposable
         TrackingVm.TrackedOperators.Select(e => e.Name).Concat(TrackingVm.TrackedEquipment.Select(e => e.Name));
 
     public void NotifyTrackingChanged() => TrackingChanged?.Invoke();
+
+    /// <summary>Short one-line feedback shown in the status bar (the macOS stand-in for toasts).</summary>
+    public event Action<string>? NoticeShown;
+
+    public void ShowNotice(string text)
+    {
+        AppLogger.Info("Mac", text);
+        NoticeShown?.Invoke(text);
+    }
 
     public async Task SaveTrackingAsync()
     {
@@ -116,6 +129,15 @@ public sealed class AppState : IDisposable
         var lineupVm = new LineupViewModel(lineupStore, calculator);
         lineupVm.LoadLineups(lineups);
 
+        // 阵容规划：搜索逻辑、目标/结果状态都在 Core 里，Mac 端只重画界面。
+        var planner = new LineupPlanner(operators, covenants);
+        var plannerVm = new LineupPlannerViewModel(planner, operators, banVm, calculator.EquipmentRules)
+        {
+            // Ban 变化可能来自截图分析的后台线程，ViewModel 要求回到界面线程再重算。
+            RunOnUiThread = action => Dispatcher.UIThread.Post(action),
+            TrackedOperatorsProvider = () => trackingVm.TrackedOperators.Select(e => e.Name).ToList(),
+        };
+
         var shopTheme = await settings.LoadGameShopThemeAsync() ?? GameShopTheme.Terminal;
         var connectionSettings = await settings.LoadGameConnectionAsync();
         // A Windows desktop window cannot be captured here; PlayCover is the default on macOS.
@@ -143,9 +165,42 @@ public sealed class AppState : IDisposable
             LineupVm = lineupVm,
             BanVm = banVm,
             GameInfo = new GameInfoViewModel(),
+            Planner = planner,
+            PlannerVm = plannerVm,
             Connection = connection,
             Capture = new ScreenCaptureService(connection),
             ShopTheme = shopTheme,
+        };
+
+        // 规划结果 → 保存为阵容 / 加入追踪（与 Windows 端同一套 Core 命令）。
+        plannerVm.SaveRequested += async lineup =>
+        {
+            try
+            {
+                state.ResolveStrategies(lineup);
+                await lineupVm.AddOrUpdateAsync(lineup);
+                state.ShowNotice($"已保存阵容“{lineup.Name}”");
+            }
+            catch (Exception ex)
+            {
+                state.ShowNotice($"保存失败：{ex.Message}");
+                AppLogger.Warn("Mac", $"Save planned lineup failed: {ex}");
+            }
+        };
+        plannerVm.TrackRequested += async lineup =>
+        {
+            try
+            {
+                var added = trackingVm.TrackLineup(lineup);
+                await state.SaveTrackingAsync();
+                state.NotifyTrackingChanged();
+                state.ShowNotice($"已追踪规划阵容：新增 {added.Operators} 名干员、{added.Equipment} 件装备");
+            }
+            catch (Exception ex)
+            {
+                state.ShowNotice($"追踪失败：{ex.Message}");
+                AppLogger.Warn("Mac", $"Track planned lineup failed: {ex}");
+            }
         };
 
         foreach (var lineup in lineups) state.ResolveStrategies(lineup);
@@ -201,6 +256,8 @@ public sealed class AppState : IDisposable
                 .Where(c => c.IsBanned).Select(c => c.Name));
             state.OperatorVm.SetCovenantBanChecker(state.BanVm.IsCovenantBanned);
             state.OperatorVm.SetAvailableCovenants(result.CoreCovenants.Concat(result.AdditionalCovenants)
+                .Where(c => !c.IsBanned).Select(c => c.Name));
+            state.PlannerVm.SetAvailableCovenants(result.CoreCovenants.Concat(result.AdditionalCovenants)
                 .Where(c => !c.IsBanned).Select(c => c.Name));
             state.GameInfo.Apply(result);
             state.OperatorVm.NotifyBansChanged();

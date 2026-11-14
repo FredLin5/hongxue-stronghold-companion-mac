@@ -29,8 +29,24 @@ public partial class MainWindow : Window
             [this.FindControl<Button>("TabGameInfo")!] = new GameInfoPage(state),
             [this.FindControl<Button>("TabTracking")!] = new TrackingPage(state),
             [this.FindControl<Button>("TabLineups")!] = new LineupPage(state),
+            [this.FindControl<Button>("TabPlanner")!] = new PlannerPage(state),
             [this.FindControl<Button>("TabSettings")!] = new SettingsPage(state),
         };
+
+        // Development aid: ASPASSISTANT_MAC_PLANNER_GOALS="乌萨斯:1,精准:1" seeds planner targets
+        // (macOS has no click automation, so screenshots of a solved plan need this).
+        if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_PLANNER_GOALS") is { Length: > 0 } goals)
+        {
+            foreach (var part in goals.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var bits = part.Split(':');
+                if (bits.Length == 2 && int.TryParse(bits[1], out var level))
+                    state.PlannerVm.SelectGoal(bits[0].Trim(), level);
+            }
+            // …and ASPASSISTANT_MAC_PLANNER_SHOW=results lands on the candidate page.
+            state.PlannerVm.ShowResults =
+                Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_PLANNER_SHOW") == "results";
+        }
 
         // Development aid: ASPASSISTANT_MAC_START_PAGE=settings|tracking|… opens that tab.
         var startPage = Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_START_PAGE")?.ToLowerInvariant() switch
@@ -38,6 +54,7 @@ public partial class MainWindow : Window
             "equipment" => "TabEquipment",
             "tracking" => "TabTracking",
             "lineups" => "TabLineups",
+            "planner" => "TabPlanner",
             "gameinfo" => "TabGameInfo",
             "settings" => "TabSettings",
             _ => "TabOperators"
@@ -62,6 +79,11 @@ public partial class MainWindow : Window
         if (Environment.GetEnvironmentVariable("ASPASSISTANT_MAC_AUTOINFO") == "1")
             Dispatcher.UIThread.Post(async () => await state.IdentifyGameInfoAsync(), DispatcherPriority.Background);
         _state.Scanner.Scanned += _ => Dispatcher.UIThread.Post(UpdateStatus);
+        // One-line feedback for actions without room for a toast (planner save / tracking).
+        state.NoticeShown += text => Dispatcher.UIThread.Post(() =>
+        {
+            if (this.FindControl<TextBlock>("StatusText") is { } notice) notice.Text = text;
+        });
         UpdateStatus();
     }
 

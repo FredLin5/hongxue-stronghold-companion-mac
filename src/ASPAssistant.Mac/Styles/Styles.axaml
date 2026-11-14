@@ -57,7 +57,7 @@
     </Style>
     <Style Selector="Button.primary">
         <Setter Property="Background" Value="{DynamicResource AccentStrong}" />
-        <Setter Property="Foreground" Value="#FF06110F" />
+        <Setter Property="Foreground" Value="{DynamicResource OnAccent}" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Button.primary:pointerover /template/ ContentPresenter">

@@ -13,6 +13,8 @@
     <SolidColorBrush x:Key="TextSecondary" Color="#FF566566" />
     <SolidColorBrush x:Key="TextMuted" Color="#FF7C8A8B" />
     <SolidColorBrush x:Key="Accent" Color="#FF0F7F76" />
+    <!-- Text/icon colour on an accent-filled surface (buttons like 主要操作). -->
+    <SolidColorBrush x:Key="OnAccent" Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="AccentStrong" Color="#FF0C6D65" />
     <SolidColorBrush x:Key="AccentTint" Color="#1A0F7F76" />
     <SolidColorBrush x:Key="AccentBorder" Color="#660F7F76" />

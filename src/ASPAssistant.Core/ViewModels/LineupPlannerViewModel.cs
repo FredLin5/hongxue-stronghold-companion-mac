@@ -562,6 +562,19 @@ public partial class LineupPlannerViewModel : ObservableObject
 
     // ── Commands ────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Selects a target level by covenant name (0 clears it), exactly like tapping Ⅰ / Ⅱ.
+    /// Used by the macOS dev hook that seeds goals for screenshots, and by tests.
+    /// </summary>
+    public bool SelectGoal(string name, int level)
+    {
+        var item = AllCovenants.FirstOrDefault(c => c.Name == name);
+        if (item is null || item.IsBlocked) return false;
+        item.Level = Math.Clamp(level, 0, item.CanPlanSecond ? 2 : 1);
+        GoalsChanged();
+        return item.Level == level;
+    }
+
     [RelayCommand]
     private void ClearGoals()
     {
