@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
   <img src="data/icons/aspa_logo.png" width="96" height="96" alt="鸿雪画框图标"/>
   <h1>鸿雪·卫戍助手</h1>
   <p>Hongxue Stronghold Companion</p>
@@ -132,6 +132,24 @@
 - 商店星号忽略小于 6 个界面像素的 OCR 位置变化，减少文字框抖动；明显移动继续跟随。
 - 开发构建跳过更新检查；正式发行版仅检查本仓库 GitHub Releases，更新公告显示标题和更新内容。
 - 自动更新校验 `SHA256SUMS.txt`，缺失或不匹配时停止；更新采用同盘目录替换，替换或启动失败时尝试回滚并显示失败原因。
+
+## macOS 版（实验）
+
+本仓库新增了 Apple Silicon macOS 移植：`src/ASPAssistant.Mac` 使用 Avalonia 重写侧栏界面，复用原项目的
+Core 逻辑与数据，并通过 MaaFramework 的 PlayCover 控制单元连接 [hguandl/PlayCover](https://github.com/hguandl/PlayCover)
+（PlayTools 的 MaaTools TCP 服务，默认 `127.0.0.1:1717`）读取 PlayCover 版《明日方舟》的画面，无需 adb。
+
+```bash
+# 需要 .NET 10 SDK；打包为自包含 .app
+scripts/build-mac.sh --run
+```
+
+已支持：干员/装备浏览与筛选、追踪列表、已保存阵容、PlayCover/ADB 连接、商店名称 OCR
+（识别本局在售目标，已在 PlayCover 4K 实机联调）、深浅主题与连接设置。商店主题自动识别在 PlayCover 4K 下不可靠，默认手动选择。
+未移植：Ban 位截图录入、站位规划/地图模拟、游戏内叠加层、阵容编辑器、攻略导入、自动更新与全局快捷键。Windows 版本不受影响。
+
+设置与数据目录为 `~/Library/Application Support/ASPAssistant/`，与 Windows 端的 JSON 格式一致。
+详细说明、PlayCover 配置步骤与验证记录见 [docs/mac-port.md](docs/mac-port.md)。
 
 ## 数据与适用范围
 

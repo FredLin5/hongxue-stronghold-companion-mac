@@ -1,8 +1,6 @@
 // Modified for ASP Assistant Regulation on 2026-11-09; see NOTICE.
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using ASPAssistant.Core.Models;
+using SkiaSharp;
 
 namespace ASPAssistant.Core.Services;
 
@@ -24,17 +22,15 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
             return [];
         var theme = Theme;
 
-        using var stream = new MemoryStream(screenshot);
-        using var source = new Bitmap(stream);
+        using var source = Raster.Decode(screenshot);
+        if (source is null) return [];
         // Small captures lose thin strokes in the frozen white labels. Normalize
         // their working height before cropping; output coordinates remain ratios.
-        using var enlarged = height < 1080 ? new Bitmap((int)Math.Round(width * 1080.0 / height), 1080) : null;
+        using var enlarged = height < 1080
+            ? source.Resize((int)Math.Round(width * 1080.0 / height), 1080)
+            : null;
         if (enlarged != null)
         {
-            using var graphics = Graphics.FromImage(enlarged);
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            graphics.DrawImage(source, 0, 0, enlarged.Width, enlarged.Height);
             width = enlarged.Width;
             height = enlarged.Height;
         }
@@ -42,14 +38,9 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
         // Keep the whole bottom quarter: UI scaling moves both the names and
         // the shop control. A thin fixed strip cuts their strokes at 100% UI.
         int canvasTop = height * 3 / 4;
-        using var strip = new Bitmap(width * 2, (height - canvasTop) * 2, PixelFormat.Format32bppArgb);
-        using (var graphics = Graphics.FromImage(strip))
-        {
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            graphics.DrawImage(workingImage, new Rectangle(0, 0, strip.Width, strip.Height),
-                0, canvasTop, width, height - canvasTop, GraphicsUnit.Pixel);
-        }
+        using var strip = Raster.Create(width * 2, (height - canvasTop) * 2);
+        strip.Draw(workingImage, new SKRect(0, 0, strip.Width, strip.Height),
+            new SKRect(0, canvasTop, width, height));
         // 24-bit BMP: no PNG encode/decode on every scan tick (see ImageBytes)
         var encoded = ImageBytes.Encode(strip);
         var texts = (await engine.RecognizeRegionAsync(encoded, 0, 0, strip.Width, strip.Height)).ToList();
@@ -128,27 +119,34 @@ public sealed class ShopReader(IOcrEngine engine, IReadOnlyList<string> catalogN
                 - pitch * (theme == GameShopTheme.Terminal ? .56 : .673));
             nameHeight = (int)Math.Round(pitch * (theme == GameShopTheme.Terminal ? .236 : .273));
         }
-        using (var original = (Bitmap)strip.Clone())
-        using (var graphics = Graphics.FromImage(strip))
+        using (var original = strip.Clone())
         {
-            graphics.Clear(Color.Black);
-            graphics.DrawImage(original, new Rectangle(0, nameTop, strip.Width, nameHeight),
-                0, nameTop, strip.Width, nameHeight, GraphicsUnit.Pixel);
+            strip.ClearBlack();
+            strip.Draw(original, new SKRect(0, nameTop, strip.Width, nameTop + nameHeight),
+                new SKRect(0, nameTop, strip.Width, nameTop + nameHeight));
             if (theme != GameShopTheme.Closure)
             {
                 // Red-channel contrast removes the blue freezing veil without
                 // discarding the original dark lettering used by other skins.
-                using var attributes = new ImageAttributes();
                 float offset = theme == GameShopTheme.Terminal ? -1.3f : -1.72f;
-                attributes.SetColorMatrix(new ColorMatrix([
-                    [5, 5, 5, 0, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
-                    [0, 0, 0, 1, 0], [offset, offset, offset, 0, 1]]));
+                // GDI+ 5x5 ColorMatrix, kept in the original layout (see Raster.Draw).
+                float[] attributes =
+                [
+                    5, 5, 5, 0, 0,
+                    0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0,
+                    0, 0, 0, 1, 0,
+                    offset, offset, offset, 0, 1
+                ];
                 for (int i = 0; i < cardLefts.Count; i++)
                 {
                     int left = cardLefts[i] * 2;
                     int cardWidth = (int)Math.Round(pitch * 2);
-                    graphics.DrawImage(original, new Rectangle(left, i % 2 == 0 ? 60 : 200, cardWidth, nameHeight),
-                        left, nameTop, cardWidth, nameHeight, GraphicsUnit.Pixel, attributes);
+                    int targetTop = i % 2 == 0 ? 60 : 200;
+                    strip.Draw(original,
+                        new SKRect(left, targetTop, left + cardWidth, targetTop + nameHeight),
+                        new SKRect(left, nameTop, left + cardWidth, nameTop + nameHeight),
+                        attributes);
                 }
             }
         }

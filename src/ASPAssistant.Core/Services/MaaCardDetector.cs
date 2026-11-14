@@ -1,7 +1,4 @@
 using System.Collections.Concurrent;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.Text.Json;
 using MaaFramework.Binding;
 using MaaFramework.Binding.Buffers;
@@ -138,17 +135,13 @@ public sealed class MaaCardDetector : ICardDetector, IDisposable
 
             if (!File.Exists(dstPath))
             {
-                using var src = new Bitmap(srcPath);
+                using var src = Raster.Decode(File.ReadAllBytes(srcPath));
+                if (src is null) return scaledName;
                 int newW = Math.Max(1, (int)Math.Round(src.Width  * scaleX));
                 int newH = Math.Max(1, (int)Math.Round(src.Height * scaleY));
 
-                using var scaled = new Bitmap(newW, newH, PixelFormat.Format32bppArgb);
-                using var g = Graphics.FromImage(scaled);
-                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                g.SmoothingMode     = SmoothingMode.HighQuality;
-                g.PixelOffsetMode   = PixelOffsetMode.HighQuality;
-                g.DrawImage(src, 0, 0, newW, newH);
-                scaled.Save(dstPath, ImageFormat.Png);
+                using var scaled = src.Resize(newW, newH);
+                File.WriteAllBytes(dstPath, scaled.EncodePng());
 
                 AppLogger.Info("CardDetector",
                     $"Scaled template saved: {scaledName} ({src.Width}x{src.Height} → {newW}x{newH}, scale={scaleX:F3}x{scaleY:F3})");

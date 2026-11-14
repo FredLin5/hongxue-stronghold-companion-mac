@@ -1,6 +1,5 @@
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Text.Json;
+using SkiaSharp;
 using ASPAssistant.Core.Models;
 
 namespace ASPAssistant.Core.Services;
@@ -20,13 +19,36 @@ public sealed class GameShopThemeDetector
             throw new InvalidDataException("模式主题参考图尺寸无效");
     }
 
+    /// <summary>Per-theme match distance (lower is better) for diagnostics and threshold tuning.</summary>
+    public IReadOnlyList<(GameShopTheme Theme, double Score)> Score(byte[] screenshot)
+    {
+        using var image = Raster.Decode(screenshot);
+        if (image is null) return [];
+        var scores = _references.Select(reference => (reference.Theme, Score: double.PositiveInfinity)).ToArray();
+        foreach (var scale in Scales)
+        {
+            var pixels = Fingerprint(image, scale);
+            for (int theme = 0; theme < _references.Length; theme++)
+            {
+                int difference = 0;
+                for (int i = 0; i < pixels.Length; i++)
+                    difference += Math.Abs(pixels[i] - _references[theme].Pixels[i]);
+                scores[theme].Score = Math.Min(scores[theme].Score, (double)difference / pixels.Length);
+            }
+        }
+        return scores.OrderBy(s => s.Score).ToList();
+    }
+
+    /// <summary>UI scaling factors the control may be rendered at.</summary>
+    private static readonly double[] Scales = [1.0, 0.85, 1.1, 1.2, 1.3, 0.75, 1.4, 1.5, 1.65, 1.75, 1.9, 2.0, 2.2];
+
     public GameShopTheme? Detect(byte[] screenshot)
     {
-        using var stream = new MemoryStream(screenshot);
-        using var image = new Bitmap(stream);
+        using var image = Raster.Decode(screenshot);
+        if (image is null) return null;
         var scores = _references.Select(reference => (reference.Theme, Score: double.PositiveInfinity)).ToArray();
         // UI scaling changes the size of the control, while its bottom-right anchor stays fixed.
-        foreach (var scale in new[] { 1.0, 0.85, 1.1, 1.2, 1.3, 0.75, 1.4, 1.5 })
+        foreach (var scale in Scales)
         {
             var pixels = Fingerprint(image, scale);
             for (int theme = 0; theme < _references.Length; theme++)
@@ -41,18 +63,14 @@ public sealed class GameShopThemeDetector
         return ranked[0].Score <= 22 && ranked[1].Score - ranked[0].Score >= 8 ? ranked[0].Theme : null;
     }
 
-    private static byte[] Fingerprint(Bitmap image, double scale)
+    private static byte[] Fingerprint(Raster image, double scale)
     {
-        using var sample = new Bitmap(24, 40);
-        using (var graphics = Graphics.FromImage(sample))
-        {
-            graphics.InterpolationMode = InterpolationMode.HighQualityBilinear;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            int left = (int)(image.Width - image.Width * 0.12 * scale);
-            int top = (int)(image.Height - image.Height * 0.3 * scale);
-            graphics.DrawImage(image, new Rectangle(0, 0, 24, 40), left, top,
-                image.Width - left, image.Height - top, GraphicsUnit.Pixel);
-        }
+        using var sample = Raster.Create(24, 40);
+        int left = (int)(image.Width - image.Width * 0.12 * scale);
+        int top = (int)(image.Height - image.Height * 0.3 * scale);
+        sample.Draw(image, new SKRect(0, 0, 24, 40),
+            new SKRect(left, top, image.Width, image.Height));
+
         var luminance = new double[24 * 40];
         for (int y = 0; y < 40; y++)
             for (int x = 0; x < 24; x++)

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using MaaFramework.Binding;
 
+#if WINDOWS
+
 namespace ASPAssistant.Core.Services;
 
 /// <summary>Scrolls the focused game window inside its left information panel.</summary>
@@ -52,3 +54,4 @@ public sealed class MaaScrollService
         finally { Interop.User32.SetCursorPos(previous.X, previous.Y); }
     }
 }
+#endif

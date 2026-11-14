@@ -1,7 +1,4 @@
 // Modified for ASP Assistant Arknights on 2026-11-12; see NOTICE.
-using System.Drawing;
-using System.Drawing.Imaging;
-
 namespace ASPAssistant.Core.Services;
 
 /// <summary>
@@ -12,18 +9,24 @@ namespace ASPAssistant.Core.Services;
 public static class ImageBytes
 {
     /// <summary>Encodes as 24-bit BMP (what MAA / OpenCV and GDI+ both read natively).</summary>
-    public static byte[] Encode(Bitmap bitmap)
+    public static byte[] Encode(Raster image) => image.EncodeBmp();
+
+#if WINDOWS
+    /// <summary>Windows-only compatibility overload used by the existing GDI+ call sites and tests.</summary>
+    public static byte[] Encode(System.Drawing.Bitmap bitmap)
     {
         using var ms = new MemoryStream();
-        if (bitmap.PixelFormat == PixelFormat.Format24bppRgb)
-            bitmap.Save(ms, ImageFormat.Bmp);
+        if (bitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format24bppRgb)
+            bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
         else
         {
-            using var rgb = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), PixelFormat.Format24bppRgb);
-            rgb.Save(ms, ImageFormat.Bmp);
+            using var rgb = bitmap.Clone(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                System.Drawing.Imaging.PixelFormat.Format24bppRgb);
+            rgb.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
         }
         return ms.ToArray();
     }
+#endif
 
     /// <summary>Width and height from a BMP or PNG header (no decoding).</summary>
     public static (int Width, int Height) GetDimensions(byte[] image)
@@ -46,21 +49,17 @@ public static class ImageBytes
     /// <summary>PNG copy for saved debug artifacts (a BMP frame would be ~6 MB on disk).</summary>
     public static byte[] ToPng(byte[] image)
     {
-        if (image.Length < 2 || image[0] != (byte)'B' || image[1] != (byte)'M') return image;
-        using var input = new MemoryStream(image);
-        using var bitmap = new Bitmap(input);
-        using var output = new MemoryStream();
-        bitmap.Save(output, ImageFormat.Png);
-        return output.ToArray();
+        if (image.Length < 2 || image[0] != (byte)'B' || image[1] != 'M') return image;
+        using var decoded = Raster.Decode(image);
+        return decoded?.EncodePng() ?? image;
     }
 
     /// <summary>BMP copy of a frame (ADB captures arrive as PNG); BMP input is returned as is.</summary>
     public static byte[] ToBmp(byte[] image)
     {
         if (image.Length >= 2 && image[0] == (byte)'B' && image[1] == (byte)'M') return image;
-        using var input = new MemoryStream(image);
-        using var bitmap = new Bitmap(input);
-        return Encode(bitmap);
+        using var decoded = Raster.Decode(image);
+        return decoded?.EncodeBmp() ?? image;
     }
 
     /// <summary>File extension matching the encoded bytes (for saved debug artifacts).</summary>

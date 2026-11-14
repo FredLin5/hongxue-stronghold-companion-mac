@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:ASPAssistant.Mac"
+             x:Class="ASPAssistant.Mac.Views.TrackingPage">
+    <UserControl.Resources>
+        <conv:NameToIconConverter x:Key="NameIcon" />
+    </UserControl.Resources>
+    <DockPanel>
+        <!-- Shop scan card -->
+        <Border DockPanel.Dock="Top" Classes="card" Padding="10,8" Margin="0,2,0,8">
+            <StackPanel Spacing="6">
+                <DockPanel>
+                    <Button DockPanel.Dock="Left" Classes="primary" Content="扫描当前商店" Click="OnScanOnce" />
+                    <ToggleButton DockPanel.Dock="Left" Classes="chip" Content="自动扫描" Margin="8,0,0,0"
+                                  IsChecked="{Binding AutoScan, Mode=TwoWay}" />
+                    <TextBlock DockPanel.Dock="Right" FontSize="10" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextMuted}" Text="{Binding ScanStatus}" />
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding MatchedNames}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{DynamicResource SuccessTint}" CornerRadius="10" Padding="7,2"
+                                    Margin="0,0,5,4">
+                                <TextBlock Text="{Binding}" FontSize="10" Foreground="{DynamicResource Success}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Tracking header -->
+        <DockPanel DockPanel.Dock="Top" Margin="2,0,2,2">
+            <Button DockPanel.Dock="Right" Classes="ghost danger" Content="清空" Click="OnClearAll" />
+            <TextBlock FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center">
+                <Run Text="追踪目标" />
+            </TextBlock>
+        </DockPanel>
+
+        <ScrollViewer>
+            <StackPanel Spacing="2">
+                <TextBlock Classes="section">
+                    <Run Text="干员 " /><Run Text="{Binding Tracking.TrackedOperators.Count}" />
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding Tracking.TrackedOperators}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="row">
+                                <Grid ColumnDefinitions="38,*,Auto,Auto">
+                                    <Border Width="34" Height="34" CornerRadius="7" ClipToBounds="True"
+                                            Background="{DynamicResource SectionBackground}">
+                                        <Image Width="34" Height="34" Stretch="UniformToFill"
+                                               Source="{Binding Name, Converter={StaticResource NameIcon}, ConverterParameter=operators}" />
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Margin="8,0" VerticalAlignment="Center" Spacing="1">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" />
+                                            <Border Background="{DynamicResource WarningTint}" CornerRadius="4" Padding="3,0"
+                                                    IsVisible="{Binding IsTransition}">
+                                                <TextBlock Text="过渡" FontSize="9" Foreground="{DynamicResource Warning}" />
+                                            </Border>
+                                            <Border Background="{DynamicResource EliteTint}" CornerRadius="4" Padding="3,0"
+                                                    IsVisible="{Binding IsElite}">
+                                                <TextBlock Text="精锐" FontSize="9" Foreground="{DynamicResource Elite}" />
+                                            </Border>
+                                            <Border Background="{DynamicResource SuccessTint}" CornerRadius="4" Padding="3,0"
+                                                    IsVisible="{Binding IsAcquired}">
+                                                <TextBlock Text="已完成" FontSize="9" Foreground="{DynamicResource Success}" />
+                                            </Border>
+                                        </StackPanel>
+                                        <TextBlock FontSize="9" Foreground="{DynamicResource TextMuted}"
+                                                   Text="{Binding TransformedCovenant}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Classes="ghost" Content="获取 / 取消" Click="OnToggleAcquired" />
+                                    <Button Grid.Column="3" Classes="ghost danger" Content="✕" Click="OnRemove" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Classes="section">
+                    <Run Text="装备 " /><Run Text="{Binding Tracking.TrackedEquipment.Count}" />
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding Tracking.TrackedEquipment}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="row">
+                                <Grid ColumnDefinitions="38,*,Auto,Auto">
+                                    <Border Width="34" Height="34" CornerRadius="7" ClipToBounds="True"
+                                            Background="{DynamicResource SectionBackground}">
+                                        <Image Width="34" Height="34" Stretch="UniformToFill"
+                                               Source="{Binding Name, Converter={StaticResource NameIcon}, ConverterParameter=equipment}" />
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12"
+                                               VerticalAlignment="Center" Margin="8,0" />
+                                    <Button Grid.Column="2" Classes="ghost" Content="获取 / 取消" Click="OnToggleAcquired" />
+                                    <Button Grid.Column="3" Classes="ghost danger" Content="✕" Click="OnRemove" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock FontSize="10" Foreground="{DynamicResource TextMuted}" Margin="2,14,2,0"
+                           TextWrapping="Wrap"
+                           Text="在「干员」「装备」页点「追踪」添加目标；扫描商店后，本局在售的目标会显示在上方。" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

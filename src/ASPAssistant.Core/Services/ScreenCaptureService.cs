@@ -1,8 +1,10 @@
-﻿// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
+// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
+#if WINDOWS
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using ASPAssistant.Core.Interop;
+#endif
 
 namespace ASPAssistant.Core.Services;
 
@@ -38,7 +40,13 @@ public class ScreenCaptureService
     public byte[]? CaptureScreen()
     {
         var connection = Connection;
-        if (connection.IsAdb) return connection.CaptureAdbScreen(MaxCaptureWidth);
+        // ADB and PlayCover frames are produced by MaaFramework on every platform.
+        if (connection.IsDeviceCapture) return connection.CaptureDeviceScreen(MaxCaptureWidth);
+#if !WINDOWS
+        AppLogger.Warn("ScreenCapture",
+            "PC window capture is only available on Windows; select ADB or PlayCover in the connection settings");
+        return null;
+#else
         var hwnd = connection.FindGameWindow();
         if (hwnd == IntPtr.Zero)
         {
@@ -131,5 +139,6 @@ public class ScreenCaptureService
             AppLogger.Warn("ScreenCapture", $"Win32Exception during capture (code={ex.NativeErrorCode}): {ex.Message}");
             return null;
         }
+#endif
     }
 }

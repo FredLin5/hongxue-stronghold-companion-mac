@@ -1,5 +1,15 @@
 # 更新记录
 
+## macOS 移植（开发中）· 2026-11-14
+
+- 新增 `src/ASPAssistant.Mac`：Avalonia 11 侧栏界面，复用 Core 的 ViewModel/数据/服务；`scripts/build-mac.sh` 生成自包含 `.app`。
+- Core 改为多目标 `net8.0-windows;net10.0`：Win32/GDI 代码用 `#if WINDOWS` 隔离，图像处理换成 SkiaSharp（`Services/Imaging/Raster.cs`），像素布局与颜色判据保持原样。
+- 游戏连接新增 `GameCaptureSource.PlayCover`，通过 MaaFramework `MaaPlayCoverController` 连接 PlayTools 的 MaaTools TCP 服务；截图与触摸与 ADB 共用控制器路径。
+- 新增商店扫描（主题判定 + 名称 OCR + 在售目标）与 macOS 设置页（连接、主题、深浅色）。
+- 验证：6 张真实商店样本 OCR 全部通过（与 `SHOP_SAMPLES.md` 一致）；WPF 端 `net8.0-windows` 仍可编译。
+- 未移植：Ban 位录入、站位规划、叠加层、阵容编辑器、攻略导入、自动更新、全局快捷键。
+
+
 记录主要功能变化及开发者需要关注的兼容性影响。已发布版本以 [GitHub Releases](https://github.com/bingyunhe/hongxue-stronghold-companion/releases) 为准。
 
 ## v1.8.0 · 2026-11-13

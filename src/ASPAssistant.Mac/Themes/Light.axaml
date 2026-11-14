@@ -1,0 +1,31 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Terminal (day) palette. -->
+    <SolidColorBrush x:Key="AppBackground" Color="#FFF3F5F5" />
+    <SolidColorBrush x:Key="TitleBackground" Color="#FFE7EDEC" />
+    <SolidColorBrush x:Key="SurfaceBackground" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="SectionBackground" Color="#FFEDF2F1" />
+    <SolidColorBrush x:Key="HoverBackground" Color="#14000000" />
+    <SolidColorBrush x:Key="PressedBackground" Color="#24000000" />
+    <SolidColorBrush x:Key="SoftBorder" Color="#22000000" />
+    <SolidColorBrush x:Key="StrongBorder" Color="#44000000" />
+    <SolidColorBrush x:Key="TextPrimary" Color="#FF1B2526" />
+    <SolidColorBrush x:Key="TextSecondary" Color="#FF566566" />
+    <SolidColorBrush x:Key="TextMuted" Color="#FF7C8A8B" />
+    <SolidColorBrush x:Key="Accent" Color="#FF0F7F76" />
+    <SolidColorBrush x:Key="AccentStrong" Color="#FF0C6D65" />
+    <SolidColorBrush x:Key="AccentTint" Color="#1A0F7F76" />
+    <SolidColorBrush x:Key="AccentBorder" Color="#660F7F76" />
+    <SolidColorBrush x:Key="Success" Color="#FF2E8B3D" />
+    <SolidColorBrush x:Key="SuccessTint" Color="#1F2E8B3D" />
+    <SolidColorBrush x:Key="Warning" Color="#FFB4600F" />
+    <SolidColorBrush x:Key="WarningTint" Color="#1FB4600F" />
+    <SolidColorBrush x:Key="Danger" Color="#FFB03030" />
+    <SolidColorBrush x:Key="DangerTint" Color="#22B03030" />
+    <SolidColorBrush x:Key="Elite" Color="#FF9A6B00" />
+    <SolidColorBrush x:Key="EliteTint" Color="#1F9A6B00" />
+    <SolidColorBrush x:Key="ChipBackground" Color="#0F000000" />
+    <SolidColorBrush x:Key="ChipSelectedBackground" Color="#330F7F76" />
+    <SolidColorBrush x:Key="ChipSelectedBorder" Color="#880F7F76" />
+    <SolidColorBrush x:Key="ChipSelectedText" Color="#FF0B5F59" />
+</ResourceDictionary>

@@ -1,5 +1,6 @@
-﻿// Modified for ASP Assistant Regulation on 2026-11-09; see NOTICE.
+// Modified for ASP Assistant Regulation on 2026-11-09; see NOTICE.
 using ASPAssistant.Core.GameModes;
+using SkiaSharp;
 
 namespace ASPAssistant.Core.Services;
 
@@ -224,43 +225,29 @@ public static class BanCovenantReader
         const int scale = 2;      // 名字在 1080p 上也只有 ~24 px 高，放大两倍给 OCR
         const int gap = 10;       // 行间距，避免上下两个名字被合成同一行
 
-        System.Drawing.Bitmap? source;
-        try
-        {
-            using var stream = new MemoryStream(screenshot);
-            using var decoded = System.Drawing.Image.FromStream(stream);
-            source = new System.Drawing.Bitmap(decoded);
-        }
-        catch (Exception ex) when (ex is ArgumentException or OutOfMemoryException)
+        using var source = Raster.Decode(screenshot);
+        if (source is null)
         {
             return [];
         }
 
-        using (source)
         {
             int width = boxes.Max(b => b.W) * scale;
             int totalHeight = boxes.Sum(b => b.H * scale + gap);
-            using var composite = new System.Drawing.Bitmap(width, totalHeight,
-                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            using (var graphics = System.Drawing.Graphics.FromImage(composite))
+            using var composite = Raster.Create(width, totalHeight);
+            composite.ClearBlack();
             {
-                graphics.Clear(System.Drawing.Color.Black);
-                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
                 var offset = 0;
                 foreach (var box in boxes)
                 {
-                    graphics.DrawImage(source,
-                        new System.Drawing.Rectangle(0, offset, box.W * scale, box.H * scale),
-                        new System.Drawing.Rectangle(box.X, box.Y, box.W, box.H),
-                        System.Drawing.GraphicsUnit.Pixel);
+                    composite.Draw(source,
+                        new SKRect(0, offset, box.W * scale, offset + box.H * scale),
+                        new SKRect(box.X, box.Y, box.X + box.W, box.Y + box.H));
                     offset += box.H * scale + gap;
                 }
             }
 
-            using var buffer = new MemoryStream();
-            composite.Save(buffer, System.Drawing.Imaging.ImageFormat.Png);
-            var texts = await ocr.RecognizeRegionAsync(buffer.ToArray(), 0, 0, width, totalHeight);
+            var texts = await ocr.RecognizeRegionAsync(composite.EncodePng(), 0, 0, width, totalHeight);
 
             var recovered = new List<Candidate>();
             foreach (var text in texts)

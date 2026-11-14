@@ -37,7 +37,8 @@ public class SettingsManager
             var json = await File.ReadAllTextAsync(Path.Combine(_settingsDir, "game-connection.json"));
             var settings = JsonSerializer.Deserialize<GameConnectionSettings>(json, JsonOptions);
             if (settings is null || !Enum.IsDefined(settings.Source)
-                || settings.AdbPath is null || settings.AdbSerial is null || settings.WindowTitle is null)
+                || settings.AdbPath is null || settings.AdbSerial is null || settings.WindowTitle is null
+                || settings.PlayCoverAddress is null || settings.PlayCoverBundleId is null)
                 throw new JsonException("游戏连接设置无效");
             return settings;
         }

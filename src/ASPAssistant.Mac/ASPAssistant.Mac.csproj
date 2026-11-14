@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>HongxueStronghold</AssemblyName>
+    <RootNamespace>ASPAssistant.Mac</RootNamespace>
+    <ApplicationTitle>鸿雪·卫戍助手</ApplicationTitle>
+    <Version>0.1.0</Version>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <!-- Runs on newer shared runtimes too when only a later .NET is installed. -->
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.23" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.23" Condition="'$(Configuration)' == 'Debug'" />
+    <ProjectReference Include="../ASPAssistant.Core/ASPAssistant.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets/**" />
+    <!-- Reuse the bundled UI fonts (SIL OFL) from the Windows project. -->
+    <AvaloniaResource Include="../ASPAssistant.App/Resources/Fonts/NotoSansSC-Regular.ttf" Link="Assets/Fonts/NotoSansSC-Regular.ttf" />
+    <AvaloniaResource Include="../ASPAssistant.App/Resources/Fonts/NotoSansSC-Bold.ttf" Link="Assets/Fonts/NotoSansSC-Bold.ttf" />
+    <AvaloniaResource Include="../ASPAssistant.App/Resources/Fonts/Oswald-SemiBold.ttf" Link="Assets/Fonts/Oswald-SemiBold.ttf" />
+    <AvaloniaResource Include="../ASPAssistant.App/Resources/Fonts/Silkscreen-Regular.ttf" Link="Assets/Fonts/Silkscreen-Regular.ttf" />
+    <AvaloniaResource Include="../ASPAssistant.App/Resources/Fonts/BarlowSemiCondensed-Bold.ttf" Link="Assets/Fonts/BarlowSemiCondensed-Bold.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Game data, icons, OCR models: same layout as the Windows build. -->
+    <Content Include="../../data/**/*" Exclude="../../data/tests/**"
+             Link="data/%(RecursiveDir)%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="../../LICENSE;../../LICENSE.upstream;../../NOTICE" Link="%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

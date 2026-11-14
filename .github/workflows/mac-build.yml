@@ -1,0 +1,45 @@
+# Builds the macOS port on Apple Silicon and runs the two offline harnesses:
+#  - tools/MacProbe   : SkiaSharp imaging + MaaFramework OCR on the real shop samples
+#  - tools/PlayToolsMock : MaaFramework PlayCover control unit against a mock MaaTools server
+name: macOS build
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mac-build:
+    name: macOS build + offline harnesses
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Show host architecture
+        run: uname -m
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build Core (macOS target)
+        run: dotnet build src/ASPAssistant.Core/ASPAssistant.Core.csproj -f net8.0 -c Release
+      - name: Build Avalonia app
+        run: dotnet build src/ASPAssistant.Mac/ASPAssistant.Mac.csproj -c Release
+      - name: Shop OCR samples (6 real screenshots)
+        run: dotnet run --project tools/MacProbe/MacProbe.csproj -c Release
+      - name: PlayCover / MaaTools protocol harness
+        run: dotnet run --project tools/PlayToolsMock/PlayToolsMock.csproj -c Release

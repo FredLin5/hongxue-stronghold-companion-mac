@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:ASPAssistant.Mac"
+             x:Class="ASPAssistant.Mac.Views.EquipmentPage">
+    <UserControl.Resources>
+        <conv:IconPathConverter x:Key="Icon" />
+        <conv:TierRomanConverter x:Key="Tier" />
+        <conv:JoinConverter x:Key="Join" />
+    </UserControl.Resources>
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="6">
+            <TextBox Watermark="搜索装备名称…" Text="{Binding SearchText, Mode=TwoWay}" />
+            <ItemsControl ItemsSource="{Binding TierChips}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleButton Classes="chip" Content="{Binding Label}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ItemsControl ItemsSource="{Binding CategoryChips}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleButton Classes="chip" Content="{Binding Label}"
+                                      IsChecked="{Binding IsSelected, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="重置" Click="OnResetFilters" />
+                <TextBlock FontSize="11" Foreground="{DynamicResource TextMuted}" VerticalAlignment="Center">
+                    <Run Text="共 " /><Run Text="{Binding MatchedCount}" /><Run Text=" 件" />
+                </TextBlock>
+            </DockPanel>
+        </StackPanel>
+
+        <ScrollViewer Margin="0,4,0,0">
+            <ItemsControl ItemsSource="{Binding FilteredEquipment}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="row">
+                            <Grid ColumnDefinitions="44,*,Auto">
+                                <Border Width="40" Height="40" CornerRadius="8" ClipToBounds="True"
+                                        Background="{DynamicResource SectionBackground}">
+                                    <Image Width="40" Height="40" Stretch="UniformToFill"
+                                           Source="{Binding IconPath, Converter={StaticResource Icon}}" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="9,0" VerticalAlignment="Center" Spacing="2">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" />
+                                        <Border Background="{DynamicResource EliteTint}" CornerRadius="5" Padding="4,0"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Tier, Converter={StaticResource Tier}}"
+                                                       FontSize="10" Foreground="{DynamicResource Elite}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock FontSize="10" Foreground="{DynamicResource TextSecondary}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Categories, Converter={StaticResource Join}}" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Classes="ghost" Content="追踪" Click="OnTrackEquipment" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

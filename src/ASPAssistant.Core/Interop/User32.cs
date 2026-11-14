@@ -5,17 +5,8 @@ using System.Text;
 
 namespace ASPAssistant.Core.Interop;
 
-[StructLayout(LayoutKind.Sequential)]
-public struct RECT
-{
-    public int Left;
-    public int Top;
-    public int Right;
-    public int Bottom;
-
-    public int Width => Right - Left;
-    public int Height => Bottom - Top;
-}
+#if WINDOWS
+// Win32 desktop interop: only compiled for the Windows target (net8.0-windows).
 
 public static class User32
 {
@@ -256,3 +247,4 @@ public static class User32
         return (info.rcMonitor, info.rcWork);
     }
 }
+#endif

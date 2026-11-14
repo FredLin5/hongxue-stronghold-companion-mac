@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ASPAssistant.Mac.Views.SettingsPage">
+    <ScrollViewer>
+        <StackPanel Spacing="10" Margin="2,2,2,10">
+            <!-- Appearance -->
+            <Border Classes="card" Padding="12,10">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="外观" FontSize="12" FontWeight="SemiBold" />
+                    <CheckBox x:Name="DarkThemeCheck" Content="深色主题" IsChecked="True" Click="OnThemeToggled" />
+                </StackPanel>
+            </Border>
+
+            <!-- Game connection -->
+            <Border Classes="card" Padding="12,10">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="游戏连接" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock Text="来源" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                    <ComboBox x:Name="SourceBox" HorizontalAlignment="Stretch" SelectedIndex="0"
+                              SelectionChanged="OnSourceChanged">
+                        <ComboBoxItem Content="PlayCover（MaaTools）" />
+                        <ComboBoxItem Content="ADB / MuMu 等模拟器" />
+                        <ComboBoxItem Content="PC 窗口截图（仅 Windows）" />
+                    </ComboBox>
+
+                    <StackPanel x:Name="PlayCoverPanel" Spacing="6">
+                        <TextBlock Text="MaaTools 地址" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                        <TextBox x:Name="PlayCoverAddressBox" Text="127.0.0.1:1717" />
+                        <TextBlock Text="Bundle ID" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                        <TextBox x:Name="PlayCoverBundleBox" Text="com.hypergryph.arknights" />
+                        <TextBlock FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}"
+                                   Text="在 PlayCover 里右键明日方舟 → 设置 → 勾选 MaaTools（端口默认 1717），启动游戏后点「测试连接」。识别由 MaaFramework 的 PlayCover 控制单元完成，无需安装 adb。" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="AdbPanel" Spacing="6" IsVisible="False">
+                        <TextBlock Text="adb 路径" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                        <TextBox x:Name="AdbPathBox" Watermark="/opt/homebrew/bin/adb 或 adb 可执行文件路径" />
+                        <TextBlock Text="设备地址" FontSize="11" Foreground="{DynamicResource TextMuted}" />
+                        <TextBox x:Name="AdbSerialBox" Watermark="127.0.0.1:16384" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="primary" Content="测试连接" Click="OnTestConnection" />
+                        <Button Content="保存并应用" Click="OnSaveConnection" />
+                    </StackPanel>
+                    <TextBlock x:Name="ConnectionStatus" FontSize="10" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondary}" Text="未测试" />
+                </StackPanel>
+            </Border>
+
+            <!-- Shop theme -->
+            <Border Classes="card" Padding="12,10">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="商店识别主题" FontSize="12" FontWeight="SemiBold" />
+                    <ComboBox x:Name="ThemeBox" HorizontalAlignment="Stretch" SelectedIndex="0"
+                              SelectionChanged="OnShopThemeChanged">
+                        <ComboBoxItem Content="卫戍协议终端" />
+                        <ComboBoxItem Content="乌萨斯齐心团" />
+                        <ComboBoxItem Content="「全能的」可露希尔" />
+                    </ComboBox>
+                    <CheckBox x:Name="AutoThemeCheck" Content="自动识别商店主题" Click="OnAutoThemeToggled" />
+                    <TextBlock FontSize="10" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondary}"
+                               Text="商店名称栏的位置随游戏主题变化，请选择游戏内正在使用的主题。自动识别用 Windows 1080p 参考图做指纹匹配，PlayCover 4K 渲染下可能失败，失败时沿用这里选择的主题。" />
+                </StackPanel>
+            </Border>
+
+            <!-- About -->
+            <Border Classes="card" Padding="12,10">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="关于" FontSize="12" FontWeight="SemiBold" />
+                    <TextBlock x:Name="VersionText" FontSize="10" Foreground="{DynamicResource TextSecondary}" />
+                    <TextBlock x:Name="PathsText" FontSize="10" Foreground="{DynamicResource TextMuted}"
+                               TextWrapping="Wrap" />
+                    <TextBlock FontSize="10" Foreground="{DynamicResource TextMuted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Text="macOS 移植版：复用原项目的业务逻辑与数据（Apache-2.0），界面使用 Avalonia 重写。" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

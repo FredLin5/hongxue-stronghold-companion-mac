@@ -1,0 +1,59 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="using:ASPAssistant.Mac"
+        x:Class="ASPAssistant.Mac.Views.MainWindow"
+        Title="鸿雪·卫戍助手"
+        Width="400" Height="900" MinWidth="340" MinHeight="560"
+        Background="{DynamicResource AppBackground}"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <conv:IconPathConverter x:Key="Icon" />
+        <conv:TierRomanConverter x:Key="Tier" />
+        <conv:JoinConverter x:Key="Join" />
+        <conv:CountToVisibilityConverter x:Key="HasCount" />
+    </Window.Resources>
+    <DockPanel>
+        <!-- In-app header -->
+        <Border DockPanel.Dock="Top" Background="{DynamicResource TitleBackground}"
+                BorderBrush="{DynamicResource SoftBorder}" BorderThickness="0,0,0,1" Height="42">
+            <DockPanel Margin="12,0">
+                <Image DockPanel.Dock="Left" Width="18" Height="18" VerticalAlignment="Center"
+                       Source="avares://HongxueStronghold/Assets/aspa_logo.png" />
+                <TextBlock DockPanel.Dock="Left" Text="鸿雪·卫戍助手" FontSize="12" FontWeight="Bold"
+                           VerticalAlignment="Center" Margin="8,0,0,0" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                    <Border Background="{DynamicResource AccentTint}" BorderBrush="{DynamicResource AccentBorder}"
+                            BorderThickness="1" CornerRadius="9" Padding="7,1" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="终端" FontSize="10" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="TerminalLevelText" Text="–" FontSize="12" FontWeight="Bold" Classes="number"
+                                       Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Tab bar -->
+        <Border DockPanel.Dock="Top" Margin="8,6,8,0">
+            <UniformGrid Columns="5">
+                <Button x:Name="TabOperators" Classes="tab active" Content="干员" Click="OnTabClick" />
+                <Button x:Name="TabEquipment" Classes="tab" Content="装备" Click="OnTabClick" />
+                <Button x:Name="TabTracking" Classes="tab" Content="追踪" Click="OnTabClick" />
+                <Button x:Name="TabLineups" Classes="tab" Content="阵容" Click="OnTabClick" />
+                <Button x:Name="TabSettings" Classes="tab" Content="设置" Click="OnTabClick" />
+            </UniformGrid>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource TitleBackground}"
+                BorderBrush="{DynamicResource SoftBorder}" BorderThickness="0,1,0,0" Height="28">
+            <DockPanel Margin="12,0">
+                <TextBlock x:Name="StatusText" Text="未连接" FontSize="10" VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextSecondary}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <ContentControl x:Name="PageHost" Margin="8,4,8,6" />
+    </DockPanel>
+</Window>

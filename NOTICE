@@ -39,3 +39,11 @@ Solo-layout and scrolled covenant recognition adapt lemon-n-orange's contributio
 https://github.com/bingyunhe/hongxue-stronghold-companion/pull/7
 Original contribution commit: d4c5434662bf9599c4abd1535b571ca521a99f63
 The local adaptation retains the existing UI-scale, OCR and strategy-piece fixes.
+
+macOS port (2026-11-14): src/ASPAssistant.Mac is a new Avalonia-based interface for
+Apple Silicon macOS. It reuses ASPAssistant.Core, which was made cross-platform
+(SkiaSharp image layer, Win32 code isolated behind #if WINDOWS) and extended with a
+MaaFramework PlayCover controller (PlayTools "MaaTools" TCP service) connection.
+The Windows WPF build (src/ASPAssistant.App) is unchanged in behaviour and target
+framework. See docs/mac-port.md. Avalonia (MIT) and SkiaSharp (MIT) are additional
+dependencies of the macOS build only.

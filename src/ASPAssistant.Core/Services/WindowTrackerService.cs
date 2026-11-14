@@ -1,7 +1,9 @@
-﻿// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
+// Modified for ASP Assistant Regulation on 2026-11-11; see NOTICE.
 using System.Timers;
 using ASPAssistant.Core.Interop;
 using Timer = System.Timers.Timer;
+
+#if WINDOWS
 
 namespace ASPAssistant.Core.Services;
 
@@ -162,3 +164,4 @@ public class WindowTrackerService : IDisposable
         _pollTimer.Dispose();
     }
 }
+#endif

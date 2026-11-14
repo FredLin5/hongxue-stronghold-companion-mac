@@ -146,3 +146,15 @@ MODIFICATIONS.md
 /src/ASPAssistant.Tests/TestData/solo-overscroll-before-1280x720.png
 /src/ASPAssistant.Tests/TestData/solo-right-full-1449x815.png
 /src/ASPAssistant.Tests/TestData/solo-right-partial-1449x815.png
+
+# Local dotnet CLI home used when the sandbox blocks ~/.dotnet
+.dotnet-home/
+
+# Local runtime settings used for development runs
+.run-settings/
+
+# Scratch folder for local tooling (swift module cache, window helper)
+.tmp/
+
+# macOS .app bundle output
+dist/

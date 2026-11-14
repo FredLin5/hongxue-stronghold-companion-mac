@@ -1,8 +1,4 @@
 // Modified for ASP Assistant Regulation on 2026-11-10; see NOTICE.
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.IO;
 
 namespace ASPAssistant.Core.Services;
 
@@ -35,35 +31,12 @@ public static class ScreenshotNormalizer
         var factor = (int)Math.Ceiling((double)MinimumAnalysisWidth / width);
         factor = Math.Clamp(factor, 2, MaximumUpscaleFactor);
 
-        using var source = Decode(png);
+        using var source = Raster.Decode(png);
         if (source is null) return (png, width, height);
 
         var targetW = source.Width * factor;
         var targetH = source.Height * factor;
-        using var resized = new Bitmap(targetW, targetH, PixelFormat.Format32bppArgb);
-        using (var graphics = Graphics.FromImage(resized))
-        {
-            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            graphics.DrawImage(source, 0, 0, targetW, targetH);
-        }
-
-        using var buffer = new MemoryStream();
-        resized.Save(buffer, ImageFormat.Png);
-        return (buffer.ToArray(), targetW, targetH);
-    }
-
-    private static Bitmap? Decode(byte[] png)
-    {
-        try
-        {
-            using var stream = new MemoryStream(png);
-            using var decoded = Image.FromStream(stream);
-            return new Bitmap(decoded);
-        }
-        catch (Exception ex) when (ex is ArgumentException or OutOfMemoryException)
-        {
-            return null;
-        }
+        using var resized = source.Resize(targetW, targetH);
+        return (resized.EncodePng(), targetW, targetH);
     }
 }

@@ -1,0 +1,131 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="avares://HongxueStronghold/Assets/Fonts#Noto Sans SC" />
+        <Setter Property="Background" Value="{DynamicResource AppBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="UserControl">
+        <Setter Property="FontFamily" Value="avares://HongxueStronghold/Assets/Fonts#Noto Sans SC" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+    </Style>
+    <Style Selector="Border.row">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="6,5" />
+    </Style>
+    <Style Selector="Border.row:pointerover">
+        <Setter Property="Background" Value="{DynamicResource HoverBackground}" />
+    </Style>
+
+    <Style Selector="TextBlock.section">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+        <Setter Property="Margin" Value="2,8,2,4" />
+    </Style>
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    </Style>
+    <Style Selector="TextBlock.number">
+        <Setter Property="FontFamily" Value="avares://HongxueStronghold/Assets/Fonts#Oswald SemiBold" />
+    </Style>
+
+    <Style Selector="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource HoverBackground}" />
+    </Style>
+    <Style Selector="Button.primary">
+        <Setter Property="Background" Value="{DynamicResource AccentStrong}" />
+        <Setter Property="Foreground" Value="#FF06110F" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="Button.tab">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="Padding" Value="10,6" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button.tab.active">
+        <Setter Property="Background" Value="{DynamicResource AccentTint}" />
+        <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.ghost">
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Button.danger">
+        <Setter Property="Foreground" Value="{DynamicResource Danger}" />
+    </Style>
+
+    <Style Selector="ToggleButton.chip">
+        <Setter Property="Background" Value="{DynamicResource ChipBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="9,3" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="ToggleButton.chip:checked">
+        <Setter Property="Background" Value="{DynamicResource ChipSelectedBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ChipSelectedBorder}" />
+        <Setter Property="Foreground" Value="{DynamicResource ChipSelectedText}" />
+    </Style>
+    <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ChipSelectedBackground}" />
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="MinHeight" Value="30" />
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource SurfaceBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SoftBorder}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="CheckBox">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+    <Style Selector="ProgressBar">
+        <Setter Property="MinHeight" Value="3" />
+        <Setter Property="Height" Value="3" />
+    </Style>
+</Styles>

@@ -1,7 +1,4 @@
 // Modified for ASP Assistant Arknights on 2026-11-09; see NOTICE.
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.Text.Json;
 using MaaFramework.Binding;
 using MaaFramework.Binding.Buffers;
@@ -143,27 +140,12 @@ public sealed class MaaOcrEngine : IOcrEngine, IDisposable
         scaledW = Math.Max(1, (int)(w * factor));
         scaledH = Math.Max(1, (int)(h * factor));
 
-        using var ms = new MemoryStream(pngBytes);
-        using var src = new Bitmap(ms);
+        using var src = Raster.Decode(pngBytes);
+        if (src is null) return pngBytes;
 
-        var dst = new Bitmap(scaledW, scaledH, PixelFormat.Format32bppArgb);
-        try
-        {
-            using var g = Graphics.FromImage(dst);
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.PixelOffsetMode   = PixelOffsetMode.HighQuality;
-            g.SmoothingMode     = SmoothingMode.HighQuality;
-            g.DrawImage(src,
-                destRect:   new Rectangle(0, 0, scaledW, scaledH),
-                srcX:       x, srcY: y, srcWidth: w, srcHeight: h,
-                srcUnit:    GraphicsUnit.Pixel);
-
-            return ImageBytes.Encode(dst);
-        }
-        finally
-        {
-            dst.Dispose();
-        }
+        using var crop = src.Crop(x, y, w, h);
+        using var dst = crop.Resize(scaledW, scaledH);
+        return ImageBytes.Encode(dst);
     }
 
     private IReadOnlyList<OcrTextResult> RunOcr(
